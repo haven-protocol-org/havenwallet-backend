@@ -2,15 +2,15 @@
   "daemon-url" :
   {
     "_comment" : "RPC urls to monero deamon",
-    "mainnet"  : "http://127.0.0.1:18081",
-    "testnet"  : "http://127.0.0.1:28081",
-    "stagenet" : "http://127.0.0.1:38081"
+    "mainnet"  : "http://127.0.0.1:17750",
+    "testnet"  : "http://127.0.0.1:27750",
+    "stagenet" : "http://127.0.0.1:27759"
   },
   "blockchain-path" :
   {
     "_comment" : "if paths are empty, default Monero paths will be used",
     "mainnet"  : "",
-    "testnet"  : "",
+    "testnet"  : "/mnt/c/workspace/crypto/data/testnet/lmdb",
     "stagenet" : ""
   },
   "database" :
@@ -37,8 +37,8 @@
     "fee"     : 0,
     "testnet" :
     {
-      "address" : "9tzmPMTViHYM3z6NAgQni1Qm1Emzxy5hQFibPgWD3LVTAz91yok5Eni1pH6zKhBHzpTU15GZooPHSGHXFvFuXEdmEG2sWAZ",
-      "viewkey" : "ae6184287ca791609844f140b8502ccfa2223c04c8699cf31fcd0af1f1d0be08"
+      "address" : "hvta3Z2ANctLBoN8Gp7aCSext2UikiYETG4xrCNTKZU6UxsVDRkKoAaG5K2SYR1gEcfakondWYj2MDVqBuJBFWJ9AJPfwNECZy",
+      "viewkey" : "113a5273235a1f9d38a143f831e6aaa87a2b08119e4ab715f60fa22766f5684f"
     },
     "mainnet" :
     {

@@ -18,12 +18,10 @@ For other Linux operating systems, the instructions are analogical.
 
 ## hosting
 
-The backend consists of four components that need to be setup for it to work:
+The backend consists of three components that need to be setup for it to work:
 
  - MySql/Mariadb database - it stores user address (viewkey is not stored!),
  associated transactions, outputs, inputs and transaction import payments information.
- - Frontend - it is virtually same as that of MyMonero, except before mentioned differences.
-  It consists of HTML, CSS, and JavaScript.
  - Haven daemon - daemon must be running and fully sync, as this is
  where all transaction data is fetched from and used. Daemon also commits txs
  from the haven backend into the Haven network.
@@ -109,10 +107,7 @@ Before running `openmonero`:
 
  - edit `config/config.js` file with your settings. Especially set `frontend-url` and `database`
  connection details.
- - set `apiUrl` in `html\js\config.js` and `nettype` option. Last slash `/` in `apiUrl` is important.
- If running backend for testnet or stagenet networks, frontend `nettype` must be set to  
- 1 - TESTNET or 2 - STAGENET. 0 is for MAINNET.
- - make sure monero daemon is running and fully sync. If using testnet or stagenet networks, use monero daemon
+ - make sure haven daemon is running and fully sync. If using testnet or stagenet networks, use haven daemon
  with `--testnet` or `--stagenet` flags!
 
 
@@ -138,12 +133,8 @@ To start for stagenet with non-default location of `config.json` file:
 ```
 
 
-## OpenMonero JSON REST API
+## Haven wallet backend JSON REST API
 
-Example JSON REST requests and their responses of [OpenMonero](https://github.com/moneroexamples/openmonero) are provided below. The long term goal
-is to make the api conform to [jsent](https://labs.omniti.com/labs/jsend)
-specification which describs successful, failed and error responses. At present,
-the OpenMonero api does not fully conform to that.
 
 #### get_version
 

@@ -33,7 +33,7 @@ The backend consists of four components that need to be setup for it to work:
 
 
 
-#### MariaDB/MySQL (using docker)
+#### MariaDB/MySQL (using docker - not recommend for production)
 
 The easiest way to setup MariaDB is through [docker](https://hub.docker.com/_/mariadb/) (assuming that you have docker setup and running)
 
@@ -80,7 +80,7 @@ frontend files are stored. All these can be changed to suit your requirements.
 Go to localhost (http://127.0.0.1) and check if frontend is working.
 
 
-#### Run OpenMonero
+#### Run Backend
 
 Command line options
 

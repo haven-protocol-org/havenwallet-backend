@@ -514,14 +514,3 @@ Example output:
   "status": "Updating account with for importing recent txs successeful."
 }
 ```
-
-
-## Other examples
-
-Other examples can be found on  [github](https://github.com/moneroexamples?tab=repositories).
-Please know that some of the examples/repositories are not
-finished and may not work as intended.
-
-## How can you help?
-
-Constructive criticism, code and website edits are always good. They can be made through github.

@@ -138,7 +138,7 @@ To start for stagenet with non-default location of `config.json` file:
 
 #### get_version
 
-Get version of the OpenMonero, its API and monero.
+Get version of the backend, its API and haven.
 
 ```bash
 curl  -w "\n" -X POST http://127.0.0.1:1984/get_version

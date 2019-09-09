@@ -24,12 +24,12 @@ The backend consists of four components that need to be setup for it to work:
  associated transactions, outputs, inputs and transaction import payments information.
  - Frontend - it is virtually same as that of MyMonero, except before mentioned differences.
   It consists of HTML, CSS, and JavaScript.
- - Monero daemon - daemon must be running and fully sync, as this is
+ - Haven daemon - daemon must be running and fully sync, as this is
  where all transaction data is fetched from and used. Daemon also commits txs
- from the Open Monero into the Monero network.
+ from the haven backend into the Haven network.
  - Backend - fully written in C++. It uses [restbed](https://github.com/Corvusoft/restbed/) to serve JSON REST to the frontend
- and [mysql++](http://www.tangentsoft.net/mysql++/) to interface the database. It also accesses Monero blockchain and "talks"
- with Monero deamon.
+ and [mysql++](http://www.tangentsoft.net/mysql++/) to interface the database. It also accesses Haven blockchain and "talks"
+ with Haven deamon.
 
 
 

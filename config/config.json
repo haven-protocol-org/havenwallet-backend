@@ -43,8 +43,8 @@
     "mainnet" :
     {
       "_comment": "these are official monero project donation address and viewkey. change it to yours",
-      "address" : "44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A",
-      "viewkey" : "f359631075708155cc3d92a32b75a7d02a5dcf27756707b47a2b31b21c389501"
+      "address" : "hvxyDQHgeHabSahNaZ77zVFb83PJxT7sB9B9DACpMxK7AbEhjy7L5cNNvxa9aeJgCYWJ7mwgy9nfRfTR4Auikavv9p7Kbh81Cv",
+      "viewkey" : "ca1e451b705fdebe400e83e3f7904f30e005548b49fb84fb990d9decd43d3a0c"
     },
     "stagenet" :
     {

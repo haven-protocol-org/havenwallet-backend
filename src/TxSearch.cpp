@@ -44,11 +44,11 @@ TxSearch::TxSearch(XmrAccount const& _acc,
                                 + acc->viewkey);
     }
 
-    // OMINFO << "construct TXSearch Thread";
-    OMINFO << "given address : " + acc->address;
-    OMINFO << "given viewkey : " + acc->viewkey;
-    OMINFO << "parsed adress : " << address;
-    OMINFO << "parsed viewkey : " << viewkey;
+    OMINFO << "construct TXSearch Thread";
+    OMINFO << "given address" + acc->address;
+    OMINFO << "given viewkey" + acc->viewkey;
+    OMINFO << "parsed adress" << address;
+    OMINFO << "parsed viewkey" << viewkey;
 
     populate_known_outputs();
 

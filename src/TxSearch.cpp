@@ -44,7 +44,7 @@ TxSearch::TxSearch(XmrAccount const& _acc,
                                 + acc->viewkey);
     }
 
-    OMINFO << "construct TXSearch Thread";
+    OMINFO << "construct TXSearch Thread"
     OMINFO << "given address" + acc->address;
     OMINFO << "given viewkey" + acc->viewkey;
     OMINFO << "parsed adress" << address;

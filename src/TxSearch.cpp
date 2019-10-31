@@ -961,9 +961,9 @@ TxSearch::get_xmr_address_viewkey() const
 string
 TxSearch::get_viewkey() const
 {
-    static string viewkey = pod_to_hex(this->viewkey);
+    static string vk = pod_to_hex(viewkey);
 
-    return viewkey;
+    return vk;
 }
 
 

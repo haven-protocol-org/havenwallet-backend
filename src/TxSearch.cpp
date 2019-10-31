@@ -45,11 +45,10 @@ TxSearch::TxSearch(XmrAccount const& _acc,
     }
 
     // OMINFO << "construct TXSearch Thread";
-    static string vk = pod_to_hex(viewkey);
     OMINFO << "given address : " + acc->address;
     OMINFO << "given viewkey : " + acc->viewkey;
-    //OMINFO << "parsed adress : " << address;
-    OMINFO << "parsed viewkey : " << vk;
+    OMINFO << "parsed adress : " << address;
+    OMINFO << "parsed viewkey : " << viewkey;
 
     populate_known_outputs();
 

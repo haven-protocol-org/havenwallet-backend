@@ -910,7 +910,7 @@ CurrentBlockchainStatus::search_thread_exist(
     if (!search_thread_exist(address))
         return false;
 
-    OMINFO << "viewkey sent: " << viewKey;
+    OMINFO << "viewkey sent: " << viewkey;
     OMINFO << "viewkey to compare: " << get_search_thread(address).get_viewkey();
 
     return get_search_thread(address).get_viewkey() == viewkey;

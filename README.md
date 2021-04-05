@@ -1,4 +1,4 @@
-# OpenMonero - a fully open sourced implementation of MyMonero backend
+# havenwallet backend - a fork of a fully open sourced implementation of MyMonero backend
 
 In this example [restbed](https://github.com/Corvusoft/restbed/) is used to
 demonstrate how to provide Monero related JSON REST service. For this purpose,
@@ -42,87 +42,36 @@ performance issues.
 All current changes, bug fixes and updates are done in the
 [branch](https://github.com/moneroexamples/openmonero/tree/devel).
 
-
-## Screenshot
-
-![Open Monero](https://raw.githubusercontent.com/moneroexamples/openmonero/master/screenshot/screen1.png)
-
-
-## Host it yourself
-
-The Open Monero consists of four components that need to be setup for it to work:
-
- - MySql/Mariadb database - it stores user address (viewkey is not stored!),
- associated transactions, outputs, inputs and transaction import payments information.
- - Frontend - it is virtually same as that of MyMonero, except before mentioned differences.
-  It consists of HTML, CSS, and JavaScript.
- - Monero daemon - daemon must be running and fully sync, as this is
- where all transaction data is fetched from and used. Daemon also commits txs
- from the Open Monero into the Monero network.
- - Backend - fully written in C++. It uses [restbed](https://github.com/Corvusoft/restbed/) to serve JSON REST to the frontend
- and [mysql++](http://www.tangentsoft.net/mysql++/) to interface the database. It also accesses Monero blockchain and "talks"
- with Monero deamon.
-
-
-## Limitations
-
-#### Performance
-
-Open Monero is not as fast as MyMonero.
- This is because it is basic, easy to understand and
- straight forward implementation of the backend. Thus,
- it does not use any special memory buffers/caches for transactions,
- blocks, complex database structures and SQL queries. Also, no ongoing monitoring of user's
-  transactions is happening, since user's viewkey is not stored (only its hash). Transaction search threads start when
-  user logs in (viewkey and address are submitted to the search thread), and finish shorty
-  after logout. Once the search threads stop, they can't be restarted without user logging
-   in back, because viewkey is unknown.
-
-
-## Example compilation on Ubuntu 18.04
-
 Below are example and basic instructions on how to setup up and run Open Monero on Ubuntu 16.04.
 For other Linux operating systems, the instructions are analogical.
 
+## compilation
 
-#### Monero download and compilation
-
-To download and compile recent Monero follow instructions
-in the following link:
-
-https://github.com/moneroexamples/monero-compilation/blob/master/README.md
-
-#### Compilation of the OpenMonero (don't run it yet)
-
-Once Monero was downloaded and compiled, we can download Open Monero and compile it.
-In fact we could postpone compilation to later, but
-we can just do it now, to see if it compiles. But don't run it yet. It will not
-work without database, setup frontend, and synced and running monero blockchain.
-
-```bash
-# need mysql++ library
-sudo apt install libmysql++-dev
+- build haven with USE_SINGLE_BUILDDIR=1 make
+- sudo apt install libmysql++-dev
+- git clone --recursive https://github.com/haven-protocol-org/havenwallet-backend.git
+- cd  havenwallet-backend
+- mkdir build && cd build
+- cmake -DMONERO_DIR=/path/to/haven .. ( don't forget the dots at the end )
+- make
 
 
-# go to home folder if still in ~/monero
-cd ~
+## hosting
 
-# download the source code of the devel branch
-git clone --recursive https://github.com/moneroexamples/openmonero.git
+The backend consists of three components that need to be setup for it to work:
 
-cd openmonero
+ - MySql/Mariadb database - it stores user address (viewkey is not stored!),
+ associated transactions, outputs, inputs and transaction import payments information.
+ - Haven daemon - daemon must be running and fully sync, as this is
+ where all transaction data is fetched from and used. Daemon also commits txs
+ from the haven backend into the Haven network.
+ - Backend - fully written in C++. It uses [restbed](https://github.com/Corvusoft/restbed/) to serve JSON REST to the frontend
+ and [mysql++](http://www.tangentsoft.net/mysql++/) to interface the database. It also accesses Haven blockchain and "talks"
+ with Haven deamon.
 
-mkdir build && cd build
 
-cmake ..
 
-# altearnatively can use cmake -DMONERO_DIR=/path/to/monero_folder ..
-# if monero is not in ~/monero
-
-make
-```
-
-#### MariaDB/MySQL (using docker)
+#### MariaDB/MySQL (using docker - not recommend for production)
 
 The easiest way to setup MariaDB is through [docker](https://hub.docker.com/_/mariadb/) (assuming that you have docker setup and running)
 
@@ -168,57 +117,8 @@ frontend files are stored. All these can be changed to suit your requirements.
 
 Go to localhost (http://127.0.0.1) and check if frontend is working.
 
-#### mymonero-core-js (optional)
 
-OpenMonero uses frontend code provided by mymonero.com. Among many files
-used, the two crtical ones are binary webassamply
-[MyMoneroCoreCpp_WASM.wasm](https://mymonero.com/js/lib/mymonero_core_js/monero_utils/MyMoneroCoreCpp_WASM.wasm) and
-the corresponding JavaScript [mymonero-core.js](https://mymonero.com/js/lib/mymonero-core.js) files.
-They are used by [send_coins.js](https://mymonero.com/js/controllers/send_coins.js?) for providing
-transaction generation functionality.
-
-OpenMonero provides these files here: `./html/js/lib`. They were generated using forked  `mymonero-core-js` repo:
-https://github.com/moneroexamples/mymonero-core-js/tree/openmonero
-
-However, you can compile them yourself using the orginal repository located at
-https://github.com/mymonero/mymonero-core-js.
-
-Below are instructions on how it can be done on Arch Linux.
-
-```
-git clone https://github.com/mymonero/mymonero-core-js.git
-
-cd mymonero-core-js/
-
-./bin/update_submodules
-
-npm install
-
-# download boost
-wget -c "https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.tar.gz" -O /tmp/boost.tar.gz && mkdir -p ./contrib && tar xzvf /tmp/boost.tar.gz -C ./contrib && mv ./contrib/boost_1_68_0/ ./contrib/boost-sdk
-
-# set EMSCRIPTEN paths (for this, you need to have EMSCRIPTEN setup, e.g. in your home folder)
-# http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html
-source ~/emsdk/emsdk_env.sh
-
-# compile boost
-./bin/build-boost-emscripten.sh
-
-# compile mymonero-core-js
-./bin/build-emcpp.sh
-
-# generate mymonero-core.js and MyMoneroCoreCpp_WASM.wasm 
-./bin/package_browser_js
-
-```
-
-The above instructions should produce `mymonero-core.js`
-and `mymonero_core_js/monero_utils/MyMoneroCoreCpp_WASM.wasm`
-(both located in `./build` folder), which can
-be used in place the files bundled with OpenMonero.
-
-
-#### Run OpenMonero
+#### Run Backend
 
 Command line options
 
@@ -247,10 +147,7 @@ Before running `openmonero`:
 
  - edit `config/config.js` file with your settings. Especially set `frontend-url` and `database`
  connection details.
- - set `apiUrl` in `html\js\config.js` and `nettype` option. Last slash `/` in `apiUrl` is important.
- If running backend for testnet or stagenet networks, frontend `nettype` must be set to  
- 1 - TESTNET or 2 - STAGENET. 0 is for MAINNET.
- - make sure monero daemon is running and fully sync. If using testnet or stagenet networks, use monero daemon
+ - make sure haven daemon is running and fully sync. If using testnet or stagenet networks, use haven daemon
  with `--testnet` or `--stagenet` flags!
 
 
@@ -276,16 +173,12 @@ To start for stagenet with non-default location of `config.json` file:
 ```
 
 
-## OpenMonero JSON REST API
+## Haven wallet backend JSON REST API
 
-Example JSON REST requests and their responses of [OpenMonero](https://github.com/moneroexamples/openmonero) are provided below. The long term goal
-is to make the api conform to [jsent](https://labs.omniti.com/labs/jsend)
-specification which describs successful, failed and error responses. At present,
-the OpenMonero api does not fully conform to that.
 
 #### get_version
 
-Get version of the OpenMonero, its API and monero.
+Get version of the backend, its API and haven.
 
 ```bash
 curl  -w "\n" -X POST http://127.0.0.1:1984/get_version
@@ -661,14 +554,3 @@ Example output:
   "status": "Updating account with for importing recent txs successeful."
 }
 ```
-
-
-## Other examples
-
-Other examples can be found on  [github](https://github.com/moneroexamples?tab=repositories).
-Please know that some of the examples/repositories are not
-finished and may not work as intended.
-
-## How can you help?
-
-Constructive criticism, code and website edits are always good. They can be made through github.

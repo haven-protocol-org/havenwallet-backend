@@ -35,7 +35,7 @@ USE `openmonero_test`;
 DROP TABLE IF EXISTS `Accounts`;
 CREATE TABLE IF NOT EXISTS `Accounts` (
   `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `address` varchar(95) NOT NULL,
+  `address` varchar(100) NOT NULL,
   `viewkey_hash` char(64) NOT NULL,
   `scanned_block_height` int(10) UNSIGNED NOT NULL DEFAULT '0',
   `scanned_block_timestamp` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',

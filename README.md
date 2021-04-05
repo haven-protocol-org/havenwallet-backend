@@ -167,6 +167,41 @@ var api_minor = response.data.api & 0xffff;
 ```
 
 
+### get_pricing_record
+
+Get the offshore pricing record from the Haven daemon used to create an offshore tx in the frontend. `blockchain_height` input is optional.
+
+```bash
+curl  -w "\n" -X POST http://127.0.0.1:1984/get_pricing_record -d '{"blockchain_height": 965507}'
+```
+
+Output:
+
+```json
+{
+  "blockchain_height": 965507,
+  "pricing_record": {
+    "sig_hex": "29b2cc1db4236a4503ccfb93b2ec8090be4f29f233d548b88d8acc13b8f35e158f8ec1fde53c964bb4e24b55f1e6e07904f08f8ffb13130d66a004f0af2db430",
+    "unused1": 15945200000000,
+    "unused2": 16066700000000,
+    "unused3": 15488900000000,
+    "xAG": 39949660000,
+    "xAU": 577690000,
+    "xAUD": 0,
+    "xBTC": 0,
+    "xCAD": 0,
+    "xCHF": 0,
+    "xCNY": 6541505850000,
+    "xEUR": 848350550000,
+    "xGBP": 0,
+    "xJPY": 0,
+    "xNOK": 0,
+    "xNZD": 0,
+    "xUSD": 15537885410000
+  }
+}
+```
+
 ### login
 
 Login an existing or a new user into OpenMonero.
@@ -192,6 +227,7 @@ Example output:
 ```json
 {"generated_locally":false,"new_address":true,"start_height":0,"status":"success"}
 ```
+
 #### get_address_txs
 
 Get the list of all txs for the given user with their possible spendings.
@@ -211,11 +247,18 @@ Output (only part shown):
   "scanned_height": 0,
   "start_height": 957190,
   "status": "success",
-  "total_received": 32594830001895764,
-  "total_received_unlocked": 32594830001895764,
+  "total_xau_received": 683584012406,
+  "total_xau_received_unlocked": 683584012406,
+  "total_xhv_received": 43388479628538,
+  "total_xhv_received_unlocked": 43388479628538,
+  "total_xusd_received": 3683584012406,
+  "total_xusd_received_unlocked": 3683584012406,
+  // "total_" + xAsset + "_received": <Integer>,
+  // "total_" + xAsset + "_received_unlocked": <Integer>,
   "transactions": [
     {
       "coinbase": false,
+      "from_asset_type": "XHV",
       "hash": "2877c449a7a9f0a507c7a6e4ae17b43d96dc44369092e57adc4e6d9ddcde1a68",
       "height": 812669,
       "id": 831631,
@@ -225,6 +268,7 @@ Output (only part shown):
       "spent_outputs": [
         {
           "amount": 13659082425875,
+          "asset_type": "XHV",
           "key_image": "0b6a04e1a1d7f149a8e8aeb91047b8ab4722de50554b88af4ed7646fd1929947",
           "mixin": 0,
           "out_index": 0,
@@ -232,13 +276,15 @@ Output (only part shown):
         }
       ],
       "timestamp": 1482567670,
-      "total_received": 0,
-      "total_sent": 13659082425875,
+      "to_asset_type": "XHV",
+      "total_xhv_received": 0,
+      "total_xhv_sent": 13659082425875,
       "tx_pub_key": "41bd5cb51aa26fb58d41acd25711a7ecc2d19be0c24b296a9e362aebee61d4d0",
       "unlock_time": 0
     },
     {
       "coinbase": true,
+      "from_asset_type": "XHV",
       "hash": "1f76938b4deceb9e0722f02f4477006d3e96e2331552f726c47f297977434b9c",
       "height": 818908,
       "id": 838719,
@@ -246,13 +292,15 @@ Output (only part shown):
       "mixin": 0,
       "payment_id": "",
       "timestamp": 1483311688,
-      "total_received": 13388479628538,
-      "total_sent": 0,
+      "to_asset_type": "XHV",
+      "total_xhv_received": 13388479628538,
+      "total_xhv_sent": 0,
       "tx_pub_key": "3c71217add3b7882e8370fe6b903bc48059a79580af5e095485afc88b3126d09",
       "unlock_time": 818968
     },
     {
       "coinbase": false,
+      "from_asset_type": "XHV",
       "hash": "53cb70ded276fbfcc68c98a8d9577b42c543bf1094d6cbb151fa05c9edb457be",
       "height": 818921,
       "id": 838735,
@@ -261,7 +309,8 @@ Output (only part shown):
       "payment_id": "",
       "spent_outputs": [
         {
-          "amount": 13683584012406,
+          "amount": 12648774828503,
+          "asset_type": "XHV",
           "key_image": "437518836c315bf989c5cc28b935280345ed672d727122f6d6c5c5ff32e98224",
           "mixin": 0,
           "out_index": 0,
@@ -269,9 +318,36 @@ Output (only part shown):
         }
       ],
       "timestamp": 1483313063,
-      "total_received": 12648774828503,
-      "total_sent": 13683584012406,
+      "to_asset_type": "XUSD",
+      "total_xhv_sent": 12648774828503,
+      "total_xusd_received": 3683584012406,
       "tx_pub_key": "3eac7a5ce7dc0cc78172522cef4591a43b0e9aab643ac3b57554fd0dbc8ba86a",
+      "unlock_time": 0
+    },
+    {
+      "coinbase": false,
+      "from_asset_type": "XUSD",
+      "hash": "a3cb70ded276fbfcc68c98a8d9577b42c543bf1094d6cbb151fa05c9edb457be",
+      "height": 848921,
+      "id": 848735,
+      "mempool": false,
+      "mixin": 5,
+      "payment_id": "",
+      "spent_outputs": [
+        {
+          "amount": 683584012406,
+          "asset_type": "XUSD",
+          "key_image": "937518836c315bf989c5cc28b935280345ed672d727122f6d6c5c5ff32e98224",
+          "mixin": 0,
+          "out_index": 0,
+          "tx_pub_key": ""
+        }
+      ],
+      "timestamp": 1483313063,
+      "to_asset_type": "XAU",
+      "total_xau_received": 83584012406,
+      "total_xusd_sent": 683584012406,
+      "tx_pub_key": "1eac7a5ce7dc0cc78172522cef4591a43b0e9aab643ac3b57554fd0dbc8ba86a",
       "unlock_time": 0
     }
   ]
@@ -299,6 +375,7 @@ Output (only part shown):
   "spent_outputs": [
     {
       "amount": 13683584012406,
+      "asset_type": "XHV",
       "key_image": "437518836c315bf989c5cc28b935280345ed672d727122f6d6c5c5ff32e98224",
       "mixin": 0,
       "out_index": 0,
@@ -306,15 +383,30 @@ Output (only part shown):
     },
     {
       "amount": 13683584012406,
+      "asset_type": "XHV",
       "key_image": "ac3088ce17cc608bcf86db65e9061fe4b9b02573b997944e4ebf7d8e64e4a3b4",
+      "mixin": 0,
+      "out_index": 0,
+      "tx_pub_key": ""
+    },
+    {
+      "amount": 683584012406,
+      "asset_type": "XUSD",
+      "key_image": "937518836c315bf989c5cc28b935280345ed672d727122f6d6c5c5ff32e98224",
       "mixin": 0,
       "out_index": 0,
       "tx_pub_key": ""
     }
   ],
   "start_height": 855633,
-  "total_received": 13481878608141995,
-  "total_sent": 4699871131811773
+  "total_xau_received": 683584012406,
+  "total_xau_sent": 0,
+  "total_xhv_received": 43388479628538,
+  "total_xhv_sent": 26307857254378,
+  "total_xusd_received": 3683584012406,
+  "total_xusd_sent": 683584012406,
+  // "total_" + xAsset + "_received": <Integer>,
+  // "total_" + xAsset + "_sent": <Integer>
 }
 ```
 
@@ -341,8 +433,8 @@ Output (only part shown):
   "status": "OK",
   "tx_hash": "bfbfbb3bfa169731a092891795be1c3c923a018882ac0efc0ed3e79e2d2b2e54",
   "tx_height": 960491,
-  "xmr_inputs": 0,
-  "xmr_outputs": 0
+  "inputs": 0,
+  "outputs": 0
 }
 ```
 
@@ -350,10 +442,11 @@ Output (only part shown):
 
 Get the list of all outputs with key images which could mean that the outouts
 had already been spent. Thus they can't be used again. It is a job of the frontend
-to filter out spent outputs based on the key images provided.
+to filter out spent outputs based on the key images provided. Asset type defaults
+to XHV.
 
 ```bash
-curl  -w "\n" -X POST http://127.0.0.1:1984/get_unspent_outs -d '{"address": "A2VTvE8bC9APsWFn3mQzgW8Xfcy2SP2CRUArD6ZtthNaWDuuvyhtBcZ8WDuYMRt1HhcnNQvpXVUavEiZ9waTbyBhP6RM8TV", "view_key": "041a241325326f9d86519b714a9b7f78b29111551757eeb6334d39c21f8b7400","amount":"0","mixin":4,"use_dust":false,"dust_threshold":"1000000000"}'
+curl  -w "\n" -X POST http://127.0.0.1:1984/get_unspent_outs -d '{"address": "A2VTvE8bC9APsWFn3mQzgW8Xfcy2SP2CRUArD6ZtthNaWDuuvyhtBcZ8WDuYMRt1HhcnNQvpXVUavEiZ9waTbyBhP6RM8TV", "view_key": "041a241325326f9d86519b714a9b7f78b29111551757eeb6334d39c21f8b7400", "asset_type": "XHV","amount":"0","mixin":4,"use_dust":false,"dust_threshold":"1000000000"}'
 ```
 
 Output (only part shown):

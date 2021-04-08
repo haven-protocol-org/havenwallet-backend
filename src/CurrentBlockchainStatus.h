@@ -74,6 +74,10 @@ public:
     virtual uint64_t
     get_hard_fork_version() const;
 
+    virtual bool
+    get_pricing_record(offshore::pricing_record &pr,
+                       uint64_t block_height);
+
     virtual void
     update_current_blockchain_height();
 

@@ -82,8 +82,8 @@ generate_key_image(const crypto::key_derivation& derivation,
 array<uint64_t, 4>
 summary_of_in_out_rct(
         const transaction& tx,
-        vector<pair<txout_to_key, uint64_t>>& output_pub_keys,
-        vector<txin_to_key>& input_key_imgs);
+        vector<pair<crypto::public_key, uint64_t>>& output_pub_keys,
+        vector<crypto::key_image>& input_key_imgs);
 
 // this version for mempool txs from json
 array<uint64_t, 6>
@@ -119,13 +119,7 @@ get_mixin_no(const string& json_str);
 vector<uint64_t>
 get_mixin_no_in_txs(const vector<transaction>& txs);
 
-vector<pair<txout_to_key, uint64_t>>
-get_ouputs(const transaction& tx);
-
-vector<tuple<txout_to_key, uint64_t, uint64_t>>
-get_ouputs_tuple(const transaction& tx);
-
-vector<txin_to_key>
+vector<crypto::key_image>
 get_key_images(const transaction& tx);
 
 bool
@@ -236,9 +230,6 @@ void chunks(Iterator begin,
     }
     while(std::distance(chunk_begin,end) > 0);
 }
-
-bool
-make_tx_from_json(const string& json_str, transaction& tx);
 
 
 inline

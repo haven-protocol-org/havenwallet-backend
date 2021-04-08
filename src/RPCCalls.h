@@ -55,6 +55,9 @@ public:
     virtual bool
     get_current_height(uint64_t& current_height);
 
+    virtual bool
+    get_pricing_record(offshore::pricing_record& pr, const uint64_t height);
+
     virtual ~RPCCalls() = default;
 
 protected:

@@ -121,6 +121,49 @@ RPCCalls::get_current_height(uint64_t& current_height)
     return true;
 }
 
+bool
+RPCCalls::get_pricing_record(offshore::pricing_record& pr, const uint64_t height)
+{
+    // Issue an RPC call to get the block header (and thus the pricing record) at the specified height
+    COMMAND_RPC_GET_BLOCK_HEADER_BY_HEIGHT::request     req = AUTO_VAL_INIT(req);
+    COMMAND_RPC_GET_BLOCK_HEADER_BY_HEIGHT::response    res = AUTO_VAL_INIT(res);
+
+    req.height = height;
+
+    bool r {false};
+
+    {
+        std::lock_guard<std::mutex> guard(m_daemon_rpc_mutex);
+
+        r = epee::net_utils::invoke_http_json_rpc(
+                "/json_rpc", "getblockheaderbyheight",
+                req, res, m_http_client, rpc_timeout);
+    }
+
+    // m_daemon_rpc_mutex.unlock();
+
+    string error_msg;
+
+    bool response_is_ok = r && check_if_response_is_ok(res, error_msg);
+
+    if (!response_is_ok || res.block_header.pricing_record == offshore::pricing_record())
+    {
+        if (response_is_ok)
+        {
+            error_msg = "Invalid pricing record in block header - offshore TXs disabled. Please try again later.";
+        }
+
+        OMERROR << "Error getting pricing record. "
+                << error_msg;
+        return false;
+    }
+
+    // Return the pricing record we retrieved
+    pr = res.block_header.pricing_record;
+    return true;
+}
+ 
+
 
 template <typename Command>
 bool

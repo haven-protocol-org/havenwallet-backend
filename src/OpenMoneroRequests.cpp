@@ -28,7 +28,32 @@ handel_::operator()(const shared_ptr< Session > session)
     session->fetch(content_length, this->request_callback);
 }
 
+json
+init_totals()
+{
+    return json{{    "XAG",        "0"      },
+                {    "XAU",        "0"      },
+                {    "XAUD",       "0"      },
+                {    "XBTC",       "0"      },
+                {    "XCAD",       "0"      },
+                {    "XCHF",       "0"      },
+                {    "XCNY",       "0"      },
+                {    "XEUR",       "0"      },
+                {    "XGBP",       "0"      },
+                {    "XJPY",       "0"      },
+                {    "XNOK",       "0"      },
+                {    "XNZD",       "0"      },
+                {    "XUSD",       "0"      },
+                {    "XHV",        "0"      }};
+}
 
+void
+add_to_total(json & j_totals, string asset_type, uint64_t amount)
+{
+    uint64_t total = stoull(j_totals[asset_type].get<std::string>());
+    total += amount;
+    j_totals[asset_type] = std::to_string(total);
+}
 
 OpenMoneroRequests::OpenMoneroRequests(
         shared_ptr<MySqlAccounts> _acc, 
@@ -249,8 +274,8 @@ OpenMoneroRequests::get_address_txs(
 
     // initialize json response
     j_response = json {
-            {"total_received"         , 0},    // calculated in this function
-            {"total_received_unlocked", 0},    // calculated in this function
+            {"total_received"         , nullptr}, // calculated in this function
+            {"total_received_unlocked", nullptr}, // calculated in this function
             {"scanned_height"         , 0},    // not used. just to match mymonero
             {"scanned_block_height"   , 0},    // taken from Accounts table
             {"scanned_block_timestamp", 0},    // taken from Accounts table
@@ -279,10 +304,10 @@ OpenMoneroRequests::get_address_txs(
     // we cant fetch an account's txs using only address.
     // knowlage of the viewkey is also needed.
 
-    uint64_t total_received {0};
-    uint64_t total_received_unlocked {0};
+    json j_total_received = init_totals();
+    json j_total_received_unlocked = init_totals();
 
-    j_response["total_received"]          = total_received;
+    j_response["total_received"]          = j_total_received;
     j_response["start_height"]            = acc.start_height;
     j_response["scanned_block_height"]    = acc.scanned_block_height;
     j_response["scanned_block_timestamp"] = static_cast<uint64_t>(
@@ -302,26 +327,28 @@ OpenMoneroRequests::get_address_txs(
         {
             json j_tx {
                     {"id"             , tx.blockchain_tx_id},
+                    {"from_asset_type", tx.str_source},
+                    {"to_asset_type"  , tx.str_dest},
                     {"coinbase"       , bool {tx.coinbase}},
                     {"tx_pub_key"     , tx.tx_pub_key},
                     {"hash"           , tx.hash},
                     {"height"         , tx.height},
                     {"mixin"          , tx.mixin},
                     {"payment_id"     , tx.payment_id},
-                    {"unlock_time"    , tx.unlock_time},                  
-                    {"total_sent"     , 0}, // to be field when checking for spent_outputs below
-                    {"total_received" , std::to_string(tx.total_received)},
+                    {"unlock_time"    , tx.unlock_time},
+                    {"total_sent"     , init_totals()}, // to be field when checking for spent_outputs below
+                    {"total_received" , init_totals()}, // to be field when checking for spent_outputs below
                     {"timestamp"      , static_cast<uint64_t>(tx.timestamp)*1000},
                     {"mempool"        , false} // tx in database are never from mempool
             };
 
+            // first get tx's inputs to calculate amount spent and return spent outputs,
+            // then get tx's outputs to calculate amount received
             vector<XmrInput> inputs;
 
             if (xmr_accounts->select_for_tx(tx.id.data, inputs))
             {
                 json j_spent_outputs = json::array();
-
-                uint64_t total_spent {0};
 
                 for (XmrInput input: inputs)
                 {
@@ -330,36 +357,50 @@ OpenMoneroRequests::get_address_txs(
                     if (xmr_accounts->select_by_primary_id(
                                 input.output_id, out))
                     {
-                        total_spent += input.amount;
+                        add_to_total(j_tx["total_sent"], tx.str_source, input.amount);
 
                         j_spent_outputs.push_back({
                           {"amount"     , std::to_string(input.amount)},
+                          {"asset_type" , tx.str_source},
                           {"key_image"  , input.key_image},
                           {"tx_pub_key" , out.tx_pub_key},
                           {"out_index"  , out.out_index},
                           {"mixin"      , out.mixin}});
                     }
-                }
 
-                j_tx["total_sent"] = std::to_string(total_spent);
+                }
 
                 j_tx["spent_outputs"] = j_spent_outputs;
 
             } // if (xmr_accounts->select_inputs_for_tx(tx.id, inputs))
 
-            total_received += tx.total_received;
+            // now get the outputs to calculate amount received
+            vector<XmrOutput> outs;
 
-            if (bool {tx.spendable})
+            if (xmr_accounts->select_for_tx(tx.id.data, outs))
             {
-                total_received_unlocked += tx.total_received;
-            }
+                json j_spent_outputs = json::array();
+
+                for (XmrOutput &out: outs)
+                {
+                    add_to_total(j_tx["total_received"], out.asset_type, out.amount);
+                    add_to_total(j_total_received, out.asset_type, out.amount);
+
+                    if (bool {tx.spendable})
+                    {
+                        add_to_total(j_total_received_unlocked, out.asset_type, out.amount);
+                    }
+
+                } //  for (XmrOutput &out: outs)
+
+            } //  if (xmr_accounts->select_outputs_for_tx(tx.id, outs))
 
             j_txs.push_back(j_tx);
 
         } // for (XmrTransaction tx: txs)
 
-        j_response["total_received"]          = std::to_string(total_received);
-        j_response["total_received_unlocked"] = std::to_string(total_received_unlocked);
+        j_response["total_received"]          = j_total_received;
+        j_response["total_received_unlocked"] = j_total_received_unlocked;
 
         j_response["transactions"] = j_txs;
 
@@ -367,61 +408,62 @@ OpenMoneroRequests::get_address_txs(
 
     // append txs found in mempool to the json returned
 
-    json j_mempool_tx;
+    // json j_mempool_tx;
 
-    if (current_bc_status->find_txs_in_mempool(
-            xmr_address, j_mempool_tx))
-    {
-        if(!j_mempool_tx.empty())
-        {
-            uint64_t total_received_mempool {0};
-            uint64_t total_sent_mempool {0};
+    // TO-DO: add total from mempool txs
+    // if (current_bc_status->find_txs_in_mempool(
+    //         xmr_address, j_mempool_tx))
+    // {
+    //     if(!j_mempool_tx.empty())
+    //     {
+    //         json j_total_received_mempool = init_totals();
+    //         json j_total_sent_mempool = init_totals();
 
-            // get last tx id (i.e., index) so that we can
-            // set some ids for the mempool txs. These ids are
-            // used for sorting in the frontend. Since we want mempool
-            // tx to be first, they need to be higher than last_tx_id_db
-            uint64_t last_tx_id_db {0};
+    //         // get last tx id (i.e., index) so that we can
+    //         // set some ids for the mempool txs. These ids are
+    //         // used for sorting in the frontend. Since we want mempool
+    //         // tx to be first, they need to be higher than last_tx_id_db
+    //         uint64_t last_tx_id_db {0};
 
-            if (!j_response["transactions"].empty())
-            {
-                last_tx_id_db = j_response["transactions"].back()["id"];
-            }
+    //         if (!j_response["transactions"].empty())
+    //         {
+    //             last_tx_id_db = j_response["transactions"].back()["id"];
+    //         }
 
 
-            for (json& j_tx: j_mempool_tx)
-            {
-                //cout << "mempool j_tx[\"total_received\"]: "
-                //     << j_tx["total_received"] << endl;
+    //         for (json& j_tx: j_mempool_tx)
+    //         {
+    //             //cout << "mempool j_tx[\"total_received\"]: "
+    //             //     << j_tx["total_received"] << endl;
 
-                j_tx["id"] = ++last_tx_id_db;
+    //             j_tx["id"] = ++last_tx_id_db;
 
-                total_received_mempool += boost::lexical_cast<uint64_t>(
-                            j_tx["total_received"].get<string>());
-                total_sent_mempool     += boost::lexical_cast<uint64_t>(
-                            j_tx["total_sent"].get<string>());
+    //             total_received_mempool += boost::lexical_cast<uint64_t>(
+    //                         j_tx["total_received"].get<string>());
+    //             total_sent_mempool     += boost::lexical_cast<uint64_t>(
+    //                         j_tx["total_sent"].get<string>());
 
-                j_response["transactions"].push_back(j_tx);
-            }
+    //             j_response["transactions"].push_back(j_tx);
+    //         }
 
-            // we account for mempool txs when providing final
-            // unlocked and locked balances.
+    //         // we account for mempool txs when providing final
+    //         // unlocked and locked balances.
 
-            j_response["total_received"]
-                    = std::to_string(
-                        boost::lexical_cast<uint64_t>(
-                            j_response["total_received"].get<string>())
-                                           + total_received_mempool - total_sent_mempool);
+    //         j_response["total_received"]
+    //                 = std::to_string(
+    //                     boost::lexical_cast<uint64_t>(
+    //                         j_response["total_received"].get<string>())
+    //                                        + total_received_mempool - total_sent_mempool);
 
-            j_response["total_received_unlocked"]
-                    = std::to_string(
-                        boost::lexical_cast<uint64_t>(
-                            j_response["total_received_unlocked"].get<string>())
-                                          + total_received_mempool - total_sent_mempool);
+    //         j_response["total_received_unlocked"]
+    //                 = std::to_string(
+    //                     boost::lexical_cast<uint64_t>(
+    //                         j_response["total_received_unlocked"].get<string>())
+    //                                       + total_received_mempool - total_sent_mempool);
 
-        } //if(!j_mempool_tx.empty())
+    //     } //if(!j_mempool_tx.empty())
 
-    } // current_bc_status->find_txs_in_mempool
+    // } // current_bc_status->find_txs_in_mempool
 
     string response_body = j_response.dump();
 
@@ -467,8 +509,8 @@ OpenMoneroRequests::get_address_info(
 
     j_response = json {
             {"locked_funds"           , "0"},    // locked xmr (e.g., younger than 10 blocks)
-            {"total_received"         , "0"},    // calculated in this function
-            {"total_sent"             , "0"},    // calculated in this function
+            {"total_received"         , nullptr}, // calculated in this function
+            {"total_sent"             , nullptr}, // calculated in this function
             {"scanned_height"         , 0},    // not used. it is here to match mymonero
             {"scanned_block_height"   , 0},    // taken from Accounts table
             {"scanned_block_timestamp", 0},    // taken from Accounts table
@@ -488,8 +530,6 @@ OpenMoneroRequests::get_address_info(
     // created and still exisits.
     if (login_and_start_search_thread(xmr_address, view_key, acc, j_response))
     {
-        uint64_t total_received {0};
-
         // ping the search thread that we still need it.
         // otherwise it will finish after some time.
         current_bc_status->ping_search_thread(xmr_address);
@@ -511,14 +551,16 @@ OpenMoneroRequests::get_address_info(
             }
         }
 
-        j_response["total_received"]          = std::to_string(total_received);
+        // calculate how much user has received and sent of each distint asset
+        json j_total_received = init_totals();
+        json j_total_sent = init_totals();
+        
+        j_response["total_received"]          = j_total_received;
         j_response["start_height"]            = acc.start_height;
         j_response["scanned_block_height"]    = acc.scanned_block_height;
         j_response["scanned_block_timestamp"]
                 = static_cast<uint64_t>(acc.scanned_block_timestamp);
         j_response["blockchain_height"]  = get_current_blockchain_height();
-
-        uint64_t total_sent {0};
 
         vector<XmrTransaction> txs;
 
@@ -551,17 +593,18 @@ OpenMoneroRequests::get_address_info(
                             {
                                 j_spent_outputs.push_back({
                                     {"amount"     , std::to_string(in.amount)},
+                                    {"asset_type" , tx.str_source},
                                     {"key_image"  , in.key_image},
                                     {"tx_pub_key" , out.tx_pub_key},
                                     {"out_index"  , out.out_index},
                                     {"mixin"      , out.mixin},
                                 });
 
-                                total_sent += in.amount;
+                                add_to_total(j_total_sent, tx.str_source, in.amount);
                             }
                         }
 
-                        total_received += out.amount;
+                        add_to_total(j_total_received, out.asset_type, out.amount);
 
                     } //  for (XmrOutput &out: outs)
 
@@ -569,9 +612,8 @@ OpenMoneroRequests::get_address_info(
 
             } // for (XmrTransaction tx: txs)
 
-
-            j_response["total_received"] = std::to_string(total_received);
-            j_response["total_sent"]     = std::to_string(total_sent);
+            j_response["total_received"] = j_total_received;
+            j_response["total_sent"]     = j_total_sent;
 
             j_response["spent_outputs"]  = j_spent_outputs;
 
@@ -605,7 +647,7 @@ OpenMoneroRequests::get_unspent_outs(
     json j_response;
     json j_request;
 
-    vector<string> requested_values {"address" , "view_key", "mixin",
+    vector<string> requested_values {"address" , "view_key", "asset_type", "mixin",
                                      "use_dust", "dust_threshold", "amount"};
 
     if (!parse_request(body, requested_values, j_request, j_response))
@@ -616,6 +658,7 @@ OpenMoneroRequests::get_unspent_outs(
 
     string xmr_address;
     string view_key;
+    string asset_type;
     uint64_t mixin {4};
     bool use_dust {false};
     uint64_t dust_threshold {1000000000};
@@ -625,6 +668,7 @@ OpenMoneroRequests::get_unspent_outs(
     {
         xmr_address = j_request["address"];
         view_key    = j_request["view_key"];
+        asset_type  = j_request["asset_type"];
 
         mixin       = j_request["mixin"];
         use_dust    = j_request["use_dust"];
@@ -704,6 +748,12 @@ OpenMoneroRequests::get_unspent_outs(
                     continue;
                 }
 
+                // skip over transactions that definitely do not have
+                // unspent outputs with expected asset type
+                if (tx.str_source != asset_type && tx.str_dest != asset_type)
+                {
+                    continue;
+                }
 
                 vector<XmrOutput> outs;
 
@@ -716,6 +766,11 @@ OpenMoneroRequests::get_unspent_outs(
                 {
                     // skip outputs considered as dust
                     if (out.amount < dust_threshold)
+                    {
+                        continue;
+                    }
+
+                    if (out.asset_type != asset_type)
                     {
                         continue;
                     }
@@ -763,7 +818,7 @@ OpenMoneroRequests::get_unspent_outs(
                            
                            rct = out.rct_outpk + out.rct_mask + out.rct_amount;
                        }
-                       else if (tx.rct_type == 4)
+                       else if (tx.rct_type >= 4)
                        {
                            // point 4 string length 80: 
                            // non-coinbase RingCT version 2 
@@ -963,6 +1018,78 @@ OpenMoneroRequests::get_random_outs(
     session->close( OK, response_body, response_headers);
 }
 
+void
+OpenMoneroRequests::get_pricing_record(
+        const shared_ptr< Session > session, const Bytes & body)
+{
+    json j_request;
+    json j_response;
+
+    vector<string> requested_values;
+
+    if (!parse_request(body, requested_values, j_request, j_response))
+    {
+        session_close(session, j_response);
+        return;
+    }
+
+    uint64_t height;
+
+    try
+    {
+        height = j_request["height"];
+    }
+    catch (json::exception const& e)
+    {
+        OMERROR << "json exception: " << e.what();
+        session_close(session, j_response);
+        return;
+    };
+
+    offshore::pricing_record pr;
+
+    if (current_bc_status->get_pricing_record(pr, height))
+    {
+        j_response = json {{    "xAG",        pr.xAG        },
+                           {    "xAU",        pr.xAU        },
+                           {    "xAUD",       pr.xAUD       },
+                           {    "xBTC",       pr.xBTC       },
+                           {    "xCAD",       pr.xCAD       },
+                           {    "xCHF",       pr.xCHF       },
+                           {    "xCNY",       pr.xCNY       },
+                           {    "xEUR",       pr.xEUR       },
+                           {    "xGBP",       pr.xGBP       },
+                           {    "xJPY",       pr.xJPY       },
+                           {    "xNOK",       pr.xNOK       },
+                           {    "xNZD",       pr.xNZD       },
+                           {    "xUSD",       pr.xUSD       },
+                           {    "unused1",    pr.unused1    },
+                           {    "unused2",    pr.unused2    },
+                           {    "unused3",    pr.unused3    }};
+
+        std::string sig_hex;
+        for (unsigned int i=0; i<64; i++) {
+            std::stringstream ss;
+            ss << std::hex << std::setw(2) << std::setfill('0') << (0xff & pr.signature[i]);
+            sig_hex += ss.str();
+        }
+
+        j_response["sig_hex"] = sig_hex;
+    }
+    else
+    {
+        j_response["status"] = "error";
+        j_response["error"]  = "Error getting pricing record "
+                               "from monero deamon";
+    }
+
+    string response_body = j_response.dump();
+
+    auto response_headers = make_headers({{ "Content-Length",
+                                            to_string(response_body.size())}});
+
+    session->close( OK, response_body, response_headers);
+}
 
 void
 OpenMoneroRequests::submit_raw_tx(
@@ -1624,10 +1751,10 @@ OpenMoneroRequests::get_tx(
     j_response["coinbase"] = coinbase;
 
     // key images of inputs
-    vector<txin_to_key> input_key_imgs;
+    vector<crypto::key_image> input_key_imgs;
 
     // public keys and xmr amount of outputs
-    vector<pair<txout_to_key, uint64_t>> output_pub_keys;
+    vector<pair<crypto::public_key, uint64_t>> output_pub_keys;
 
     uint64_t xmr_inputs;
     uint64_t xmr_outputs;
@@ -1732,6 +1859,7 @@ OpenMoneroRequests::get_tx(
         auto total_received = calc_total_xmr(outputs_identified);
 
         j_response["total_received"] = std::to_string(total_received);
+        json j_total_sent = init_totals();
 
         json j_spent_outputs = json::array();
 
@@ -1778,8 +1906,6 @@ OpenMoneroRequests::get_tx(
                     {
                         json j_spent_outputs = json::array();
 
-                        uint64_t total_spent {0};
-
                         for (XmrInput input: inputs)
                         {
                             XmrOutput out;
@@ -1788,10 +1914,11 @@ OpenMoneroRequests::get_tx(
                                     ->select_by_primary_id(
                                         input.output_id, out))
                             {
-                                total_spent += input.amount;
+                                add_to_total(j_total_sent, out.asset_type, input.amount);
 
                                 j_spent_outputs.push_back({
                                       {"amount"     , std::to_string(input.amount)},
+                                      {"asset_type" , out.asset_type},
                                       {"key_image"  , input.key_image},
                                       {"tx_pub_key" , out.tx_pub_key},
                                       {"out_index"  , out.out_index},
@@ -1800,7 +1927,7 @@ OpenMoneroRequests::get_tx(
 
                         } // for (XmrInput input: inputs)
 
-                        j_response["total_sent"]    = std::to_string(total_spent);
+                        j_response["total_sent"]    = j_total_sent;
 
                         j_response["spent_outputs"] = j_spent_outputs;
 

@@ -80,11 +80,13 @@ struct XmrAccount : public Accounts, Table
 
 };
 
-sql_create_17(Transactions, 1, 17,
+sql_create_19(Transactions, 1, 19,
               sql_bigint_unsigned_null, id,
               sql_varchar             , hash,
               sql_varchar             , prefix_hash,
               sql_varchar             , tx_pub_key,
+              sql_varchar             , str_source,
+              sql_varchar             , str_dest,
               sql_bigint_unsigned     , account_id,
               sql_bigint_unsigned     , blockchain_tx_id,
               sql_bigint_unsigned     , total_received,
@@ -125,18 +127,21 @@ struct XmrTransaction : public Transactions, Table
     )";
 
     static constexpr const char* INSERT_STMT = R"(
-        INSERT IGNORE INTO `Transactions` (`hash`, `prefix_hash`, `tx_pub_key`, `account_id`, 
+        INSERT IGNORE INTO `Transactions` (`hash`, `prefix_hash`, `tx_pub_key`,
+                                           `str_source`, `str_dest`,     
+                                           `account_id`, 
                                            `blockchain_tx_id`,
                                            `total_received`, `total_sent`, `unlock_time`,
                                            `height`, `coinbase`, `is_rct`, `rct_type`,
                                            `spendable`,
                                            `payment_id`, `mixin`, `timestamp`)
-                                VALUES (%0q, %1q, %2q, %3q,
-                                        %4q, 
-                                        %5q, %6q, %7q, 
-                                        %8q, %9q, %10q, %11q,
-                                        %12q, 
-                                        %13q, %14q, %15q);
+                                VALUES (%0q, %1q, %2q,
+                                        %3q, %4q,
+                                        %5q, 
+                                        %6q, %7q, %8q, 
+                                        %9q, %10q, %11q, %12q,
+                                        %13q, 
+                                        %14q, %15q, %16q);
     )";
 
     static constexpr const char* MARK_AS_SPENDABLE_STMT = R"(
@@ -171,7 +176,7 @@ struct XmrTransaction : public Transactions, Table
 
 };
 
-sql_create_13(Outputs, 1, 13,
+sql_create_14(Outputs, 1, 14,
               sql_bigint_unsigned_null, id,               // this is null so that we can set it to mysqlpp:null when inserting rows
               sql_bigint_unsigned, account_id,            // this way auto_increment of the id will take place and we can
               sql_bigint_unsigned, tx_id,                 // use vector of outputs to write at once to mysql
@@ -179,6 +184,7 @@ sql_create_13(Outputs, 1, 13,
               sql_varchar        , rct_outpk,
               sql_varchar        , rct_mask,
               sql_varchar        , rct_amount,
+              sql_varchar        , asset_type,
               sql_varchar        , tx_pub_key,
               sql_bigint_unsigned, amount,
               sql_bigint_unsigned, global_index,
@@ -209,7 +215,7 @@ struct XmrOutput : public Outputs, Table
       INSERT IGNORE INTO `Outputs` (`account_id`, `tx_id`, `out_pub_key`,
                                      `tx_pub_key`,
                                      `rct_outpk`, `rct_mask`, `rct_amount`,
-                                     `amount`, `global_index`,
+                                     `amount`, `asset_type`, `global_index`,
                                      `out_index`, `mixin`, `timestamp`)
                             VALUES (%0q, %1q, %2q,
                                     %3q,

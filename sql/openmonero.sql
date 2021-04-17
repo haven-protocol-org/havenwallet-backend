@@ -20,11 +20,11 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `openmonero`
+-- Database: `openhaven`
 --
 
-CREATE DATABASE IF NOT EXISTS `openmonero` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
-USE `openmonero`;
+CREATE DATABASE IF NOT EXISTS `openhaven` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+USE `openhaven`;
 
 -- --------------------------------------------------------
 
@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS `Outputs` (
   `rct_amount` varchar(64) NOT NULL DEFAULT '',
   `tx_pub_key` varchar(64) NOT NULL DEFAULT '',
   `amount` bigint(20) UNSIGNED NOT NULL DEFAULT '0',
+  `asset_type` varchar(10) NOT NULL,
   `global_index` bigint(20) UNSIGNED NOT NULL,
   `out_index` bigint(20) UNSIGNED NOT NULL DEFAULT '0',
   `mixin` bigint(20) UNSIGNED NOT NULL DEFAULT '0',
@@ -130,6 +131,8 @@ CREATE TABLE IF NOT EXISTS `Transactions` (
   `hash` varchar(64) NOT NULL,
   `prefix_hash` varchar(64) NOT NULL DEFAULT '',
   `tx_pub_key` varchar(64) NOT NULL DEFAULT '',
+  `str_source` varchar(10) NOT NULL,
+  `str_dest` varchar(10) NOT NULL,
   `account_id` bigint(20) UNSIGNED NOT NULL,
   `blockchain_tx_id` bigint(20) UNSIGNED NOT NULL,
   `total_received` bigint(20) UNSIGNED NOT NULL,

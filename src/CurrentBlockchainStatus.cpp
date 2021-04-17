@@ -91,6 +91,15 @@ CurrentBlockchainStatus::get_hard_fork_version() const
     return future_result.get();
 }
 
+bool
+CurrentBlockchainStatus::get_pricing_record(
+        offshore::pricing_record &pr,
+        const uint64_t block_height
+)
+{
+    return rpc->get_pricing_record(pr, block_height);
+}
+
 void
 CurrentBlockchainStatus::update_current_blockchain_height()
 {
@@ -981,24 +990,32 @@ CurrentBlockchainStatus::find_key_images_in_mempool(
     // is using any key images that area already in the mempool.
     for (auto const& kin: vin)
     {
-        if(kin.type() != typeid(txin_to_key))
-            continue;
-
         // get tx input key
-        const txin_to_key& tx_in_to_key
-                = boost::get<cryptonote::txin_to_key>(kin);
+        crypto::key_image k_image;
+
+        if (kin.type() == typeid(cryptonote::txin_to_key)) {
+            k_image = boost::get<cryptonote::txin_to_key>(kin).k_image;
+        } else if (kin.type() == typeid(cryptonote::txin_offshore)) {
+            k_image = boost::get<cryptonote::txin_offshore>(kin).k_image;
+        } else if (kin.type() == typeid(cryptonote::txin_onshore)) {
+            k_image = boost::get<cryptonote::txin_onshore>(kin).k_image;
+        } else if (kin.type() == typeid(cryptonote::txin_xasset)) {
+            k_image = boost::get<cryptonote::txin_xasset>(kin).k_image;
+        } else {
+            continue;
+        }
 
         for (auto const& mtx: mempool_txs)
         {
             transaction const& m_tx = mtx.second;
 
-            vector<txin_to_key> input_key_imgs
+            vector<crypto::key_image> input_key_imgs
                     = xmreg::get_key_images(m_tx);
 
-            for (auto const& mki: input_key_imgs)
+            for (crypto::key_image m_k_image: input_key_imgs)
             {
                 // if a matching key image found in the mempool
-                if (mki.k_image == tx_in_to_key.k_image)
+                if (m_k_image == k_image)
                     return true;
             }
         }

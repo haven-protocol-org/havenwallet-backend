@@ -98,6 +98,9 @@ public:
     get_random_outs(const shared_ptr< Session > session, const Bytes & body);
 
     void
+    get_pricing_record(const shared_ptr< Session > session, const Bytes & body);
+
+    void
     submit_raw_tx(const shared_ptr< Session > session, const Bytes & body);
 
     void

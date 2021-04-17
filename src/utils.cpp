@@ -168,8 +168,8 @@ generate_key_image(const crypto::key_derivation& derivation,
 array<uint64_t, 4>
 summary_of_in_out_rct(
         const transaction& tx,
-        vector<pair<txout_to_key, uint64_t>>& output_pub_keys,
-        vector<txin_to_key>& input_key_imgs)
+        vector<pair<crypto::public_key, uint64_t>>& output_pub_keys,
+        vector<crypto::key_image>& input_key_imgs)
 {
 
     uint64_t xmr_outputs       {0};
@@ -180,16 +180,22 @@ summary_of_in_out_rct(
 
     for (const tx_out& txout: tx.vout)
     {
-        if (txout.target.type() != typeid(txout_to_key))
+        if ((txout.target.type() != typeid(cryptonote::txout_to_key)) &&
+            (txout.target.type() != typeid(cryptonote::txout_offshore)) &&
+            (txout.target.type() != typeid(cryptonote::txout_xasset)))
         {
             // push empty pair.
-            output_pub_keys.push_back(pair<txout_to_key, uint64_t>{});
+            output_pub_keys.push_back(pair<crypto::public_key, uint64_t>{});
             continue;
-        }
+        };
 
         // get tx input key
-        const txout_to_key& txout_key
-                = boost::get<cryptonote::txout_to_key>(txout.target);
+        crypto::public_key txout_key =
+	        (txout.target.type() == typeid(cryptonote::txout_to_key)) 
+                ? boost::get<txout_to_key>(txout.target).key
+	            : (txout.target.type() == typeid(cryptonote::txout_offshore)) 
+                    ? boost::get<txout_offshore>(txout.target).key
+	                : boost::get<txout_xasset>(txout.target).key;
 
         output_pub_keys.push_back(make_pair(txout_key, txout.amount));
 
@@ -201,28 +207,46 @@ summary_of_in_out_rct(
     for (size_t i = 0; i < input_no; ++i)
     {
 
-        if(tx.vin[i].type() != typeid(cryptonote::txin_to_key))
-        {
+        // get tx input key
+        const auto &in = tx.vin[i];
+
+        crypto::key_image k_image;
+        uint64_t amount;
+        std::vector<uint64_t> key_offsets;
+
+        if (in.type() == typeid(cryptonote::txin_to_key)) {
+            k_image = boost::get<cryptonote::txin_to_key>(in).k_image;
+            amount = boost::get<cryptonote::txin_to_key>(in).amount;
+            key_offsets = boost::get<cryptonote::txin_to_key>(in).key_offsets;
+        } else if (in.type() == typeid(cryptonote::txin_offshore)) {
+            k_image = boost::get<cryptonote::txin_offshore>(in).k_image;
+            amount = boost::get<cryptonote::txin_offshore>(in).amount;
+            key_offsets = boost::get<cryptonote::txin_offshore>(in).key_offsets;
+        } else if (in.type() == typeid(cryptonote::txin_onshore)) {
+            k_image = boost::get<cryptonote::txin_onshore>(in).k_image;
+            amount = boost::get<cryptonote::txin_onshore>(in).amount;
+            key_offsets = boost::get<cryptonote::txin_onshore>(in).key_offsets;
+        } else if (in.type() == typeid(cryptonote::txin_xasset)) {
+            k_image = boost::get<cryptonote::txin_xasset>(in).k_image;
+            amount = boost::get<cryptonote::txin_xasset>(in).amount;
+            key_offsets = boost::get<cryptonote::txin_xasset>(in).key_offsets;
+        } else {
             continue;
         }
 
-        // get tx input key
-        const cryptonote::txin_to_key& tx_in_to_key
-                = boost::get<cryptonote::txin_to_key>(tx.vin[i]);
+        xmr_inputs += amount;
 
-        xmr_inputs += tx_in_to_key.amount;
-
-        if (tx_in_to_key.amount != 0)
+        if (amount != 0)
         {
             ++num_nonrct_inputs;
         }
 
         if (mixin_no == 0)
         {
-            mixin_no = tx_in_to_key.key_offsets.size();
+            mixin_no = key_offsets.size();
         }
 
-        input_key_imgs.push_back(tx_in_to_key);
+        input_key_imgs.push_back(k_image);
 
     } //  for (size_t i = 0; i < input_no; ++i)
 
@@ -319,17 +343,24 @@ sum_money_in_inputs(const transaction& tx)
 
     for (size_t i = 0; i < input_no; ++i)
     {
+        // get tx input key
+        const auto &in = tx.vin[i];
 
-        if(tx.vin[i].type() != typeid(cryptonote::txin_to_key))
-        {
+        uint64_t amount;
+
+        if (in.type() == typeid(cryptonote::txin_to_key)) {
+            amount = boost::get<cryptonote::txin_to_key>(in).amount;
+        } else if (in.type() == typeid(cryptonote::txin_offshore)) {
+            amount = boost::get<cryptonote::txin_offshore>(in).amount;
+        } else if (in.type() == typeid(cryptonote::txin_onshore)) {
+            amount = boost::get<cryptonote::txin_onshore>(in).amount;
+        } else if (in.type() == typeid(cryptonote::txin_xasset)) {
+            amount = boost::get<cryptonote::txin_xasset>(in).amount;
+        } else {
             continue;
         }
 
-        // get tx input key
-        const cryptonote::txin_to_key& tx_in_to_key
-                = boost::get<cryptonote::txin_to_key>(tx.vin[i]);
-
-        sum_xmr += tx_in_to_key.amount;
+        sum_xmr += amount;
     }
 
     return sum_xmr;
@@ -400,54 +431,6 @@ sum_fees_in_txs(const vector<transaction>& txs)
     return fees_sum;
 }
 
-
-
-vector<pair<txout_to_key, uint64_t>>
-get_ouputs(const transaction& tx)
-{
-    vector<pair<txout_to_key, uint64_t>> outputs;
-
-    for (const tx_out& txout: tx.vout)
-    {
-        if (txout.target.type() != typeid(txout_to_key))
-        {
-            continue;
-        }
-
-        // get tx input key
-        const txout_to_key& txout_key
-                = boost::get<cryptonote::txout_to_key>(txout.target);
-
-        outputs.push_back(make_pair(txout_key, txout.amount));
-    }
-
-    return outputs;
-
-};
-
-vector<tuple<txout_to_key, uint64_t, uint64_t>>
-get_ouputs_tuple(const transaction& tx)
-{
-    vector<tuple<txout_to_key, uint64_t, uint64_t>> outputs;
-
-    for (uint64_t n = 0; n < tx.vout.size(); ++n)
-    {
-
-        if (tx.vout[n].target.type() != typeid(txout_to_key))
-        {
-            continue;
-        }
-
-        // get tx input key
-        const txout_to_key& txout_key
-                = boost::get<cryptonote::txout_to_key>(tx.vout[n].target);
-
-        outputs.push_back(make_tuple(txout_key, tx.vout[n].amount, n));
-    }
-
-    return outputs;
-};
-
 uint64_t
 get_mixin_no(const transaction& tx)
 {
@@ -458,16 +441,23 @@ get_mixin_no(const transaction& tx)
     for (size_t i = 0; i < input_no; ++i)
     {
 
-        if(tx.vin[i].type() != typeid(cryptonote::txin_to_key))
-        {
+        const auto &in = tx.vin[i];
+
+        std::vector<uint64_t> key_offsets;
+
+        if (in.type() == typeid(cryptonote::txin_to_key)) {
+            key_offsets = boost::get<cryptonote::txin_to_key>(in).key_offsets;
+        } else if (in.type() == typeid(cryptonote::txin_offshore)) {
+            key_offsets = boost::get<cryptonote::txin_offshore>(in).key_offsets;
+        } else if (in.type() == typeid(cryptonote::txin_onshore)) {
+            key_offsets = boost::get<cryptonote::txin_onshore>(in).key_offsets;
+        } else if (in.type() == typeid(cryptonote::txin_xasset)) {
+            key_offsets = boost::get<cryptonote::txin_xasset>(in).key_offsets;
+        } else {
             continue;
         }
 
-        // get tx input key
-        const txin_to_key& tx_in_to_key
-                = boost::get<cryptonote::txin_to_key>(tx.vin[i]);
-
-        mixin_no = tx_in_to_key.key_offsets.size();
+        mixin_no = key_offsets.size();
 
         // look for first mixin number.
         // all inputs in a single transaction have same number
@@ -517,26 +507,33 @@ get_mixin_no_in_txs(const vector<transaction>& txs)
 }
 
 
-vector<txin_to_key>
+vector<crypto::key_image>
 get_key_images(const transaction& tx)
 {
-    vector<txin_to_key> key_images;
+    vector<crypto::key_image> key_images;
 
     size_t input_no = tx.vin.size();
 
     for (size_t i = 0; i < input_no; ++i)
     {
 
-        if(tx.vin[i].type() != typeid(txin_to_key))
-        {
+        // get tx input key
+        const auto &in = tx.vin[i];
+        crypto::key_image k_image;
+
+        if (in.type() == typeid(cryptonote::txin_to_key)) {
+            k_image = boost::get<cryptonote::txin_to_key>(in).k_image;
+        } else if (in.type() == typeid(cryptonote::txin_offshore)) {
+            k_image = boost::get<cryptonote::txin_offshore>(in).k_image;
+        } else if (in.type() == typeid(cryptonote::txin_onshore)) {
+            k_image = boost::get<cryptonote::txin_onshore>(in).k_image;
+        } else if (in.type() == typeid(cryptonote::txin_xasset)) {
+            k_image = boost::get<cryptonote::txin_xasset>(in).k_image;
+        } else {
             continue;
         }
 
-        // get tx input key
-        const txin_to_key& tx_in_to_key
-                = boost::get<cryptonote::txin_to_key>(tx.vin[i]);
-
-        key_images.push_back(tx_in_to_key);
+        key_images.push_back(k_image);
     }
 
     return key_images;
@@ -869,11 +866,16 @@ is_output_ours(const size_t& output_index,
     //cout << "\n" << tx.vout.size() << " " << output_index << endl;
 
     // get tx output public key
-    const txout_to_key tx_out_to_key
-            = boost::get<txout_to_key>(tx.vout[output_index].target);
+    const auto &o = tx.vout[output_index];
+    crypto::public_key txout_key =
+        (o.target.type() == typeid(cryptonote::txout_to_key)) 
+            ? boost::get<txout_to_key>(o.target).key
+            : (o.target.type() == typeid(cryptonote::txout_offshore)) 
+                ? boost::get<txout_offshore>(o.target).key
+                : boost::get<txout_xasset>(o.target).key;
 
 
-    if (tx_out_to_key.key == pubkey)
+    if (txout_key == pubkey)
     {
         return true;
     }
@@ -881,271 +883,6 @@ is_output_ours(const size_t& output_index,
     return false;
 }
 
-
-
-
-bool
-make_tx_from_json(const string& json_str, transaction& tx)
-{
-    json j;
-
-    try
-    {
-        j = json::parse(json_str);
-    }
-    catch (std::invalid_argument& e)
-    {
-        cerr << "make_tx_from_json: cant parse json string: " << e.what() << endl;
-        return false;
-    }
-
-    // get version and unlock time from json
-    tx.version     = j["version"].get<size_t>();
-    tx.unlock_time = j["unlock_time"].get<uint64_t>();
-
-    // next get extra data
-    for (json& extra_val: j["extra"])
-        tx.extra.push_back(extra_val.get<uint8_t>());
-
-
-    // now populate output data from json
-    vector<tx_out>& tx_outputs = tx.vout;
-
-    for (json& vo: j["vout"])
-    {
-        uint64_t amount = vo["amount"].get<uint64_t>();
-
-        public_key out_pub_key;
-
-        if (!epee::string_tools::hex_to_pod(vo["target"]["key"], out_pub_key))
-        {
-            cerr << "Faild to parse public_key of an output from json" << endl;
-            return false;
-        }
-
-        txout_target_v target {txout_to_key {out_pub_key}};
-
-        tx_outputs.push_back(tx_out {amount, target});
-    }
-
-    // now populate input data from json
-    vector<txin_v>& tx_inputs = tx.vin;
-
-    for (json& vi: j["vin"])
-    {
-        uint64_t amount = vi["key"]["amount"].get<uint64_t>();
-
-        key_image in_key_image;
-
-        if (!epee::string_tools::hex_to_pod(vi["key"]["k_image"], in_key_image))
-        {
-            cerr << "Faild to parse key_image of an input from json" << endl;
-            return false;
-        }
-
-        vector<uint64_t> key_offsets;
-
-        for (json& ko: vi["key"]["key_offsets"])
-        {
-            key_offsets.push_back(ko.get<uint64_t>());
-        }
-
-        txin_v _txin_v {txin_to_key {amount, key_offsets, in_key_image}};
-
-        tx_inputs.push_back(_txin_v);
-    }
-
-    // add ring signatures field
-
-    if (j.find("signatures") != j.end())
-    {
-        vector<vector<signature>>& signatures = tx.signatures;
-
-        for (json& sigs: j["signatures"])
-        {
-            string concatanted_sig = sigs;
-
-            vector<signature> sig_split;
-
-            auto split_sig = [&](string::iterator &b, string::iterator &e)
-            {
-                signature a_sig;
-
-                if (!epee::string_tools::hex_to_pod(string(b, e), a_sig))
-                {
-                    cerr << "Faild to parse signature from json" << endl;
-                    return false;
-                }
-
-                sig_split.push_back(a_sig);
-
-                return true;
-            };
-
-            chunks(concatanted_sig.begin(), concatanted_sig.end(), 128, split_sig);
-
-            signatures.push_back(sig_split);
-        }
-
-    }
-
-    // now add rct_signatures from json to tx if exist
-
-    if (j.find("rct_signatures") != j.end())
-    {
-        rct::rctSig& rct_signatures = tx.rct_signatures;
-
-        if (j["rct_signatures"].find("pseudoOuts") != j["rct_signatures"].end())
-        {
-            rct::keyV& pseudoOuts = rct_signatures.pseudoOuts;
-
-            for (json& pOut: j["rct_signatures"]["pseudoOuts"])
-            {
-                rct::key pOut_key;
-
-                if (!epee::string_tools::hex_to_pod(pOut, pOut_key))
-                {
-                    cerr << "Faild to parse pOut_key of pseudoOuts from json" << endl;
-                    return false;
-                }
-
-                pseudoOuts.push_back(pOut_key);
-            }
-        }
-
-        vector<rct::ecdhTuple>& ecdhInfo = rct_signatures.ecdhInfo;
-
-        for (json& ecdhI: j["rct_signatures"]["ecdhInfo"])
-        {
-            rct::ecdhTuple a_tuple;
-
-            //cout << "ecdhI[\"amount\"]: " << ecdhI["amount"] << endl;
-
-            if (!epee::string_tools::hex_to_pod(ecdhI["amount"], a_tuple.amount))
-            {
-                cerr << "Faild to parse ecdhInfo of an amount from json" << endl;
-                return false;
-            }
-
-            //cout << epee::string_tools::pod_to_hex(a_tuple.amount) << endl;
-
-            if (!epee::string_tools::hex_to_pod(ecdhI["mask"], a_tuple.mask))
-            {
-                cerr << "Faild to parse ecdhInfo of an mask from json" << endl;
-                return false;
-            }
-
-            ecdhInfo.push_back(a_tuple);
-        }
-
-        vector<rct::ctkey>& outPk = rct_signatures.outPk;
-
-        for (json& pk: j["rct_signatures"]["outPk"])
-        {
-            outPk.push_back(rct::ctkey {rct::zero(), rct::zero()});
-
-            rct::key& mask = outPk.back().mask;
-
-            if (!epee::string_tools::hex_to_pod(pk, mask))
-            {
-                cerr << "Faild to parse rct::key of an outPk from json" << endl;
-                return false;
-            }
-
-            // cout << "dest: " << epee::string_tools::pod_to_hex(outPk.back().mask) << endl;
-        }
-
-        rct_signatures.txnFee = j["rct_signatures"]["txnFee"].get<uint64_t>();
-        rct_signatures.type   = j["rct_signatures"]["type"].get<uint8_t>();
-
-    } //  if (j.find("rct_signatures") != j.end())
-
-
-    if (j.find("rctsig_prunable") != j.end())
-    {
-        rct::rctSigPrunable& rctsig_prunable = tx.rct_signatures.p;
-
-        vector<rct::rangeSig>& range_sigs = rctsig_prunable.rangeSigs;
-
-        for (json& range_s: j["rctsig_prunable"]["rangeSigs"])
-        {
-            rct::boroSig asig;
-
-            if (!epee::string_tools::hex_to_pod(range_s["asig"], asig))
-            {
-                cerr << "Faild to parse asig of an asnlSig from json" << endl;
-                return false;
-            }
-
-
-            struct {
-                rct::key64 Ci;
-            } key64_contained;
-
-            if (!epee::string_tools::hex_to_pod(range_s["Ci"], key64_contained))
-            {
-                cerr << "Faild to parse Ci of an asnlSig from json" << endl;
-                return false;
-            }
-
-            range_sigs.push_back(rct::rangeSig {});
-
-            rct::rangeSig& last_range_sig = range_sigs.back();
-
-            last_range_sig.asig = asig;
-
-            memcpy(&(last_range_sig.Ci), &(key64_contained.Ci), sizeof(rct::key64));
-        }
-
-        vector<rct::mgSig>& mg_sigs = rctsig_prunable.MGs;
-
-        for (json& a_mgs: j["rctsig_prunable"]["MGs"])
-        {
-            rct::mgSig new_mg_sig;
-
-            vector<rct::keyV>& ss = new_mg_sig.ss;
-
-            for (json& ss_j: a_mgs["ss"])
-            {
-                rct::key a_key1;
-
-                if (!epee::string_tools::hex_to_pod(ss_j[0], a_key1))
-                {
-                    cerr << "Faild to parse ss a_key1 of an MGs from json" << endl;
-                    return false;
-                }
-
-                rct::key a_key2;
-
-                if (!epee::string_tools::hex_to_pod(ss_j[1], a_key2))
-                {
-                    cerr << "Faild to parse ss a_key2 of an MGs from json" << endl;
-                    return false;
-                }
-
-                ss.push_back(vector<rct::key>{a_key1, a_key2});
-            }
-
-            json& cc_j = a_mgs["cc"];
-
-            if (!epee::string_tools::hex_to_pod(cc_j, new_mg_sig.cc))
-            {
-                cerr << "Faild to parse cc an MGs from json" << endl;
-                return false;
-            }
-
-            mg_sigs.push_back(new_mg_sig);
-        }
-
-    } // j.find("rctsig_prunable") != j.end()
-
-
-    //cout << j.dump(4) << endl;
-
-    //cout << "From reconstructed tx: " << obj_to_json_str(tx) << endl;
-
-    return true;
-}
 
 string
 get_human_readable_timestamp(uint64_t ts)
@@ -1240,7 +977,7 @@ blocks_and_txs_from_complete_blocks(
         {
             transaction tx;
 
-            if (!parse_and_validate_tx_from_blob(tx_blob, tx))
+            if (!parse_and_validate_tx_from_blob(tx_blob.blob, tx))
                 return false;
 
             txs.push_back(tx);

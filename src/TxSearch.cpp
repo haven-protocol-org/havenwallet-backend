@@ -194,9 +194,28 @@ for (auto const& tx_tuple: txs_data)
     uint64_t blk_height         = std::get<0>(tx_tuple);
     uint64_t blk_timestamp      = std::get<1>(tx_tuple);
     bool is_coinbase            = std::get<2>(tx_tuple);
-    bool is_rct                 = (tx.version == 2);
+    bool is_rct                 = (tx.version >= 2);
     uint8_t rct_type            = (is_rct ? tx.rct_signatures.type : 0);
 
+    // Get tx's asset source and dest. Each tx has a single source,
+    // and a single dest. The most basic is XHV to XHV.
+    bool bOffshoreTx = false;
+    tx_extra_offshore offshore_data;
+    if (tx.extra.size()) {
+        // Check to see if this is an offshore tx
+        bOffshoreTx = get_offshore_from_tx_extra(tx.extra, offshore_data);
+    }
+
+    std::string strSource = "XHV";
+    std::string strDest = "XHV";
+    if (bOffshoreTx) {
+        // Split the TX extra information into the 2 currencies
+        int pos = offshore_data.data.find("-");
+        if (pos != std::string::npos) {
+            strSource = offshore_data.data.substr(0,pos);
+            strDest = offshore_data.data.substr(pos+1);
+        }
+    }
 
     // Class that is responsible for identification of our outputs
     // and inputs in a given tx.
@@ -310,6 +329,9 @@ for (auto const& tx_tuple: txs_data)
         tx_data.total_sent       = 0; // at this stage we don't have
                                      //  anyinfo about spendings
 
+        tx_data.str_source       = strSource;
+        tx_data.str_dest         = strDest;
+
                                      // this is current block
                                      // + unlock time
                                      // for regular tx,
@@ -363,6 +385,7 @@ for (auto const& tx_tuple: txs_data)
             out_data.out_pub_key  = pod_to_hex(out_info.pub_key);
             out_data.tx_pub_key   = tx_pub_key_str;
             out_data.amount       = out_info.amount;
+            out_data.asset_type   = out_info.asset_type;
             out_data.out_index    = out_info.idx_in_tx;
             out_data.rct_outpk    = pod_to_hex(out_info.rtc_outpk);
             out_data.rct_mask     = pod_to_hex(out_info.rtc_mask);
@@ -769,7 +792,7 @@ uint64_t recieve_time = mtx.first;
 const transaction& tx = mtx.second;
 
 const crypto::hash tx_hash = get_transaction_hash(tx);
-bool is_rct                 = (tx.version == 2);
+bool is_rct                 = (tx.version >= 2);
 uint8_t rct_type            = (is_rct ? tx.rct_signatures.type : 0);
 
 // Class that is resposnible for idenficitaction of our outputs

@@ -58,6 +58,9 @@ public:
     virtual bool
     get_pricing_record(offshore::pricing_record& pr, const uint64_t height);
 
+    virtual bool
+    get_rct_output_distribution(std::vector<uint64_t>& rct_offsets);
+
     virtual ~RPCCalls() = default;
 
 protected:

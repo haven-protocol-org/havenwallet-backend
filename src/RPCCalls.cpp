@@ -163,7 +163,48 @@ RPCCalls::get_pricing_record(offshore::pricing_record& pr, const uint64_t height
     return true;
 }
  
+bool
+RPCCalls::get_rct_output_distribution(std::vector<uint64_t>& rct_offsets)
+{
+    COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::request   req;
+    COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::response  res;    
 
+    req.amounts = {0}; // ringct outputs only
+    req.cumulative = true;
+    req.from_height = 0;
+    req.to_height = 0;
+    req.binary = true; // fastest request over local network
+
+    bool r {false};
+
+    {
+        std::lock_guard<std::mutex> guard(m_daemon_rpc_mutex);
+        r = epee::net_utils::invoke_http_bin(
+            "/get_output_distribution.bin",
+            req, res, m_http_client, rpc_timeout);    
+    }
+    string error_msg;
+
+    if (!r || !check_if_response_is_ok(res, error_msg))
+    {
+        OMERROR << "Error getting output distribution. " << error_msg;
+        return false;
+    }
+
+   if (res.distributions.size() != 1)
+        error_msg += "Unexpected size returned.";
+    else if (res.distributions[0].amount != 0)
+        error_msg += "Amount not 0.";
+
+    if (!error_msg.empty())
+    {
+        OMERROR << "Error getting output distribution. " << error_msg;
+        return false;
+    }
+    rct_offsets = res.distributions[0].data.distribution;
+
+    return true;
+}
 
 template <typename Command>
 bool
@@ -197,5 +238,11 @@ template
 bool RPCCalls::check_if_response_is_ok<
         COMMAND_RPC_GET_HEIGHT::response>(
     COMMAND_RPC_GET_HEIGHT::response const& res,
+    string& error_msg) const;
+
+template
+bool RPCCalls::check_if_response_is_ok<
+        COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::response>(
+    COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::response const& res,
     string& error_msg) const;
 }

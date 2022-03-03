@@ -57,7 +57,7 @@ jobs:
         git submodule update --init --recursive
 
     - name: Creating Build Files 
-      run: 'cmake -DMONERO_DIR=/root/project/haven-main -DBUILD_TESTS=ON -H. -Bbuild'
+      run: 'cmake -DMONERO_DIR=/home/runner/work/openhaven/openhaven/haven-main -DBUILD_TESTS=ON -H. -Bbuild'
       
     - name: Creating Binary Files
       run: 'cmake --build build -- -j 2'

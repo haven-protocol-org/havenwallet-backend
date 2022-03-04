@@ -1,3 +1,4 @@
 [submodule "src/xmregcore"]
 	path = src/xmregcore
-	url = https://github.com/haven-protocol-org/xmregcore.git
+	url = https://github.com/MartyHav/xmregcore.git
+	branch = feature/v16

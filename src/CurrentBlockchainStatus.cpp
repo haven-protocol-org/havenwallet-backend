@@ -419,7 +419,7 @@ CurrentBlockchainStatus::get_account_integrated_address_as_str(
     return get_account_integrated_address_as_str(payment_id8);
 }
 
-bool
+/* bool
 CurrentBlockchainStatus::get_amount_specific_indices(
         const crypto::hash& tx_hash,
         vector<uint64_t>& out_indices)
@@ -450,7 +450,7 @@ CurrentBlockchainStatus::get_amount_specific_indices(
         }, std::cref(tx_hash), std::ref(out_indices));
 
     return future_result.get();
-}
+} */
 
 bool
 CurrentBlockchainStatus::get_output_histogram(

@@ -156,7 +156,7 @@ public:
 
     virtual bool
     get_amount_specific_indices(const crypto::hash& tx_hash,
-                                vector<uint64_t>& out_indices);
+                                std::vector<std::pair<uint64_t, uint64_t>>& out_indices);
 
     virtual bool
     get_random_outputs(vector<uint64_t> const& amounts,

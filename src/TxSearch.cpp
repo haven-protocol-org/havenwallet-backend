@@ -256,7 +256,7 @@ for (auto const& tx_tuple: txs_data)
 
     auto total_received = calc_total_xmr(outputs_identified);
 
-    vector<uint64_t> amount_specific_indices;
+    std::vector<std::pair<uint64_t, uint64_t>> amount_specific_indices;
 
     uint64_t tx_mysql_id {0};
 
@@ -391,7 +391,7 @@ for (auto const& tx_tuple: txs_data)
             out_data.rct_mask     = pod_to_hex(out_info.rtc_mask);
             out_data.rct_amount   = pod_to_hex(out_info.rtc_amount);
             out_data.global_index = amount_specific_indices
-                    .at(out_data.out_index);
+                    .at(out_data.out_index).first;
             out_data.mixin        = tx_data.mixin;
             out_data.timestamp    = tx_data.timestamp;
 

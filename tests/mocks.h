@@ -88,7 +88,7 @@ public:
                                   uint64_t global_amount_index));
 
     MOCK_CONST_METHOD1(get_tx_amount_output_indices,
-                    std::vector<uint64_t>(uint64_t tx_id));
+                    std::vector<std::pair<uint64_t, uint64_t>>(uint64_t tx_id));
 
     MOCK_CONST_METHOD2(get_random_outs_for_amounts,
                         bool(COMMAND_RPC_GET_OUTPUT_HISTOGRAM::request const& req,

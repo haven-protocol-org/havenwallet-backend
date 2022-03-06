@@ -441,13 +441,13 @@ TEST_P(BCSTATUS_TEST, GetOutputKeys)
     outputs_to_return.push_back(
                 output_data_t {
                 crypto::rand<crypto::public_key>(),
-                1000, 2222,'XHV',
+                1000, 2222,"XHV",
                 crypto::rand<rct::key>()});
 
     outputs_to_return.push_back(
                 output_data_t {
                 crypto::rand<crypto::public_key>(),
-                3333, 5555,'XHV',
+                3333, 5555,"XHV",
                 crypto::rand<rct::key>()});
 
     EXPECT_CALL(*mcore_ptr, get_output_key(_, _, _))
@@ -843,7 +843,7 @@ TEST_P(BCSTATUS_TEST, GetOutputKey)
 
     output_data_t output_to_return {
                                 crypto::rand<crypto::public_key>(),
-                                1000, 2222,'XHV',
+                                1000, 2222,"XHV",
                                 crypto::rand<rct::key>()};
 
     EXPECT_CALL(*mcore_ptr, get_output_key(_, _))
@@ -1342,7 +1342,7 @@ TEST_P(BCSTATUS_TEST, ConstructOutputRctField_LegacyTx)
 
     output_data_t output_to_return {
                 crypto::rand<crypto::public_key>(),
-                1000, 2222,'XHV',
+                1000, 2222,"XHV",
                 crypto::rand<rct::key>() /* commitment */};
 
     EXPECT_CALL(*mcore_ptr, get_output_key(_, _))

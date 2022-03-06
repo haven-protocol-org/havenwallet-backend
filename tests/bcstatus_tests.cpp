@@ -512,7 +512,7 @@ ACTION(ThrowTxDNE)
     throw TX_DNE("Mock Throw: Tx does not exist!");
 }
 
-TEST_P(BCSTATUS_TEST, GetAmountSpecificIndices)
+/* TEST_P(BCSTATUS_TEST, GetAmountSpecificIndices)
 {
     vector<uint64_t> out_indices_to_return {1,2,3};
 
@@ -539,7 +539,7 @@ TEST_P(BCSTATUS_TEST, GetAmountSpecificIndices)
             .WillOnce(ThrowTxDNE());
 
     EXPECT_FALSE(bcs->get_amount_specific_indices(tx_hash, out_indices));
-}
+} */
 
 //TEST_P(BCSTATUS_TEST, GetRandomOutputs)
 //{

@@ -10,7 +10,7 @@
   {
     "_comment" : "if paths are empty, default Monero paths will be used",
     "mainnet"  : "",
-    "testnet"  : "/mnt/c/workspace/crypto/data/testnet/lmdb",
+    "testnet"  : "/home/dev/.haven/testnet/15/lmdb",
     "stagenet" : ""
   },
   "database" :
@@ -18,7 +18,7 @@
     "_comment" : "how should the backend connect to the mysql database",
     "url"      : "127.0.0.1",
     "port"     : 3306,
-    "dbname"   : "openmonero",
+    "dbname"   : "openhaven",
     "user"     : "root",
     "password" : "root"
   },

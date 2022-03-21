@@ -593,14 +593,14 @@ OpenMoneroRequests::get_address_info(
                             {
                                 j_spent_outputs.push_back({
                                     {"amount"     , std::to_string(in.amount)},
-                                    {"asset_type" , tx.str_source},
+                                    {"asset_type" , out.asset_type},
                                     {"key_image"  , in.key_image},
                                     {"tx_pub_key" , out.tx_pub_key},
                                     {"out_index"  , out.out_index},
                                     {"mixin"      , out.mixin},
                                 });
 
-                                add_to_total(j_total_sent, tx.str_source, in.amount);
+                                add_to_total(j_total_sent, out.asset_type, in.amount);
                             }
                         }
 

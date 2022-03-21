@@ -199,23 +199,12 @@ for (auto const& tx_tuple: txs_data)
 
     // Get tx's asset source and dest. Each tx has a single source,
     // and a single dest. The most basic is XHV to XHV.
-    bool bOffshoreTx = false;
-    tx_extra_offshore offshore_data;
-    if (tx.extra.size()) {
-        // Check to see if this is an offshore tx
-        bOffshoreTx = get_offshore_from_tx_extra(tx.extra, offshore_data);
-    }
 
-    std::string strSource = "XHV";
-    std::string strDest = "XHV";
-    if (bOffshoreTx) {
-        // Split the TX extra information into the 2 currencies
-        int pos = offshore_data.data.find("-");
-        if (pos != std::string::npos) {
-            strSource = offshore_data.data.substr(0,pos);
-            strDest = offshore_data.data.substr(pos+1);
-        }
-    }
+    std::string strSource;
+    std::string strDest;
+
+    bool r = cryptonote::get_tx_asset_types(tx, tx_hash, strSource, strDest, is_coinbase);
+
 
     // Class that is responsible for identification of our outputs
     // and inputs in a given tx.

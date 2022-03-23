@@ -77,13 +77,8 @@ MysqlOutpus::exist(const string& output_public_key_str, XmrOutput& out)
     return true;
 }
 
-
-MysqlTransactions::MysqlTransactions(shared_ptr<MySqlConnector> _conn)
-    : conn {_conn}
-{}
-
 uint64_t
-MysqlTransactions::mark_spendable(const uint64_t& tx_id_no, bool spendable)
+MysqlOutpus::mark_spendable(const uint64_t& output_id_no, bool spendable)
 {
     try
     {
@@ -91,12 +86,12 @@ MysqlTransactions::mark_spendable(const uint64_t& tx_id_no, bool spendable)
 
         Query query = conn->query(
                     spendable ?
-                      XmrTransaction::MARK_AS_SPENDABLE_STMT
-                                : XmrTransaction::MARK_AS_NONSPENDABLE_STMT);
+                      XmrOutput::MARK_AS_SPENDABLE_STMT
+                                : XmrOutput::MARK_AS_NONSPENDABLE_STMT);
         query.parse();
 
 
-        SimpleResult sr = query.execute(tx_id_no);
+        SimpleResult sr = query.execute(output_id_no);
 
         return sr.rows();
     }
@@ -108,6 +103,10 @@ MysqlTransactions::mark_spendable(const uint64_t& tx_id_no, bool spendable)
 
     return 0;
 }
+
+MysqlTransactions::MysqlTransactions(shared_ptr<MySqlConnector> _conn)
+    : conn {_conn}
+{}
 
 uint64_t
 MysqlTransactions::delete_tx(const uint64_t& tx_id_no)
@@ -503,47 +502,28 @@ bool MySqlAccounts::select_by_primary_id<XmrPayment>(
         uint64_t id, XmrPayment& selected_data);
 
 bool
-MySqlAccounts::select_txs_for_account_spendability_check(
+MySqlAccounts::select_txs_for_account_orphaned_check(
         const uint64_t& account_id, vector<XmrTransaction>& txs)
 {
 
     for (auto it = txs.begin(); it != txs.end(); )
     {
-        // first we check if txs stored in db are already spendable
-        // it means if they are older than 10 blocks. If  yes,
-        // we mark them as spendable, as we assume that blocks
+        // first we check if txs stored in db are older than 10 blocks. If  yes,
+        // as we assume that blocks
         // older than 10 blocks are permanent, i.e, they wont get
         // orphaned.
 
         XmrTransaction& tx = *it;
 
-        if (bool {tx.spendable} == false)
+        uint64_t current_height = current_bc_status->get_current_blockchain_height(); 
+        
+        if (tx.height + CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE > current_height)
         {
-
-            if (current_bc_status->is_tx_unlocked(tx.unlock_time, tx.height))
-            {
-                // this tx was before marked as unspendable, but now
-                // it is spendable. Meaning, that its older than 10 blocks.
-                // so mark it as spendable in mysql, so that its permanet.
-
-                uint64_t no_row_updated = mark_tx_spendable(tx.id.data);
-
-                if (no_row_updated != 1)
-                {
-                    cerr << "no_row_updated != 1 due to  "
-                            "xmr_accounts->mark_tx_spendable(tx.id)\n";
-                    return false;
-                }
-
-                tx.spendable = true;
-            }
-            else
-            {
-                // tx was marked as non-spendable, i.e., younger than 10 blocks
-                // so we still are going to use this txs, but we need to double
-                // check if its still valid, i.e., it's block did not get orphaned.
-                // we do this by checking if txs still exists in the blockchain
-                // and if its blockchain_tx_id is same as what we have in our mysql.
+            // tx was marked as fairly new, i.e., younger than 10 blocks
+            // so we still are going to use this txs, but we need to double
+            // check if its still valid, i.e., it's block did not get orphaned.
+            // we do this by checking if txs still exists in the blockchain
+            // and if its blockchain_tx_id is same as what we have in our mysql.
 
                 uint64_t blockchain_tx_id {0};
 
@@ -573,18 +553,49 @@ MySqlAccounts::select_txs_for_account_spendability_check(
                     continue;
                 }
 
-                // set unlock_time field so that frontend displies it
-                // as a locked tx, if unlock_time is zero.
-                // coinbtase txs have this set already. regular tx
-                // have unlock_time set to zero by default, but they cant
-                // be spent anyway.
+        }
 
-                if (tx.unlock_time == 0)
-                    tx.unlock_time = tx.height
-                            + CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
+        ++it;
 
-            } // else
+    } // for (auto it = txs.begin(); it != txs.end(); )
 
+    return true;
+}
+
+
+bool
+MySqlAccounts::select_outputs_for_account_spendability_check(
+        const uint64_t& account_id, const uint64_t& tx_height, vector<XmrOutput>& outs)
+{
+
+    for (auto it = outs.begin(); it != outs.end(); )
+    {
+        // we check if outs stored in db are already spendable
+        // it means if they are older than their unlock_time ( 10 blocks for regular txs, varies for exchange txs). 
+        // If yes, we mark them as spendable
+
+        XmrOutput& out = *it;
+
+        if (bool {out.spendable} == false)
+        {
+
+            if (current_bc_status->is_tx_unlocked(out.unlock_time, tx_height))
+            {
+                // this out was before marked as unspendable, but now
+                // it is spendable. Meaning, that its older than its unlock_time.
+                // so mark it as spendable in mysql, so that its permanet.
+
+                uint64_t no_row_updated = mark_out_spendable(out.id.data);
+
+                if (no_row_updated != 1)
+                {
+                    cerr << "no_row_updated != 1 due to  "
+                            "xmr_accounts->mark_out_spendable(out.id)\n";
+                    return false;
+                }
+
+                out.spendable = true;
+            }
         } // if (bool {tx.spendable} == false)
 
         ++it;
@@ -610,23 +621,23 @@ MySqlAccounts::output_exists(const string& output_public_key_str,
     return mysql_out->exist(output_public_key_str, out);
 }
 
+uint64_t
+MySqlAccounts::mark_out_spendable(const uint64_t& out_id_no)
+{
+    return mysql_out->mark_spendable(out_id_no);
+}
+
+uint64_t
+MySqlAccounts::mark_out_nonspendable(const uint64_t& out_id_no)
+{
+    return mysql_out->mark_spendable(out_id_no, false);
+}
+
 bool
 MySqlAccounts::tx_exists(const uint64_t& account_id,
                          const string& tx_hash_str, XmrTransaction& tx)
 {
     return mysql_tx->exist(account_id, tx_hash_str, tx);
-}
-
-uint64_t
-MySqlAccounts::mark_tx_spendable(const uint64_t& tx_id_no)
-{
-    return mysql_tx->mark_spendable(tx_id_no);
-}
-
-uint64_t
-MySqlAccounts::mark_tx_nonspendable(const uint64_t& tx_id_no)
-{
-    return mysql_tx->mark_spendable(tx_id_no, false);
 }
 
 uint64_t

@@ -43,11 +43,9 @@ XmrTransaction::to_json() const
             {"total_sent"          , total_sent},
             {"height"              , height},
             {"payment_id"          , payment_id},
-            {"unlock_time"         , unlock_time},
             {"coinbase"            , bool {coinbase}},
             {"is_rct"              , bool {is_rct}},
             {"rct_type"            , rct_type},
-            {"spendable"           , bool {spendable}},
             {"mixin"               , mixin},
             {"timestamp"           , static_cast<uint64_t>(timestamp)}
     };
@@ -79,8 +77,11 @@ XmrOutput::to_json() const
             {"amount"              , amount},
             {"asset_type"          , asset_type},
             {"global_index"        , global_index},
+            {"asset_index"         , asset_index},
             {"out_index"           , out_index},
             {"mixin"               , mixin},
+            {"spendable"           , bool {spendable}},
+            {"unlock_time"         , unlock_time},
             {"timestamp"           , static_cast<uint64_t>(timestamp)}
     };
 

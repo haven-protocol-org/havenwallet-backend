@@ -59,6 +59,10 @@ public:
 
     bool
     exist(const string& output_public_key_str, XmrOutput& out);
+
+
+    uint64_t
+    mark_spendable(const uint64_t& tx_id_no, bool spendable = true);
 };
 
 
@@ -71,9 +75,6 @@ class MysqlTransactions
 public:
 
     MysqlTransactions(shared_ptr<MySqlConnector> _conn);
-
-    uint64_t
-    mark_spendable(const uint64_t& tx_id_no, bool spendable = true);
 
     uint64_t
     delete_tx(const uint64_t& tx_id_no);
@@ -157,8 +158,12 @@ public:
     select_by_primary_id(uint64_t id, T& selected_data);
 
     bool
-    select_txs_for_account_spendability_check(const uint64_t& account_id,
+    select_txs_for_account_orphaned_check(const uint64_t& account_id,
                                               vector<XmrTransaction>& txs);
+
+    bool
+    select_outputs_for_account_spendability_check(const uint64_t& account_id, const uint64_t& tx_height,
+                                              vector<XmrOutput>& outs);
 
     bool
     select_inputs_for_out(const uint64_t& output_id, vector<XmrInput>& ins);
@@ -170,10 +175,10 @@ public:
     tx_exists(const uint64_t& account_id, const string& tx_hash_str, XmrTransaction& tx);
 
     uint64_t
-    mark_tx_spendable(const uint64_t& tx_id_no);
+    mark_out_spendable(const uint64_t& out_id_no);
 
     uint64_t
-    mark_tx_nonspendable(const uint64_t& tx_id_no);
+    mark_out_nonspendable(const uint64_t& out_id_no);
 
     uint64_t
     delete_tx(const uint64_t& tx_id_no);

@@ -606,7 +606,7 @@ TEST_F(MYSQL_TEST, MarkTxSpendableAndNonSpendable)
     EXPECT_FALSE(static_cast<bool>(tx_data.spendable));
 
     // mark it as spendable
-    no_of_changed_rows = xmr_accounts->mark_tx_spendable(tx_data.id.data);
+    no_of_changed_rows = xmr_accounts->mark_out_spendable(tx_data.id.data);
 
     EXPECT_EQ(no_of_changed_rows, 1);
 
@@ -617,7 +617,7 @@ TEST_F(MYSQL_TEST, MarkTxSpendableAndNonSpendable)
 
     // try ding same but when disconnected
     xmr_accounts->disconnect();
-    EXPECT_EQ(xmr_accounts->mark_tx_spendable(tx_data.id.data), 0);
+    EXPECT_EQ(xmr_accounts->mark_out_spendable(tx_data.id.data), 0);
 }
 
 TEST_F(MYSQL_TEST, GetTotalRecievedByAnAddressWhenDisconnected)
@@ -1255,7 +1255,7 @@ TEST_F(MYSQL_TEST, SelectTxsIfAllAreSpendableAndExist)
     auto no_of_original_txs = txs.size();
 
     for (size_t i = 0; i < txs.size(); ++i)
-        this->xmr_accounts->mark_tx_spendable(txs[i].id.data);
+        this->xmr_accounts->mark_out_spendable(txs[i].id.data);
 
     // reselect tx after they were marked as spendable
     txs.clear();

@@ -318,7 +318,7 @@ OpenMoneroRequests::get_address_txs(
 
     xmr_accounts->select(acc.id.data, txs);
 
-    if (xmr_accounts->select_txs_for_account_spendability_check(
+    if (xmr_accounts->select_txs_for_account_orphaned_check(
                 acc.id.data, txs))
     {
         json j_txs = json::array();
@@ -335,7 +335,6 @@ OpenMoneroRequests::get_address_txs(
                     {"height"         , tx.height},
                     {"mixin"          , tx.mixin},
                     {"payment_id"     , tx.payment_id},
-                    {"unlock_time"    , tx.unlock_time},
                     {"total_sent"     , init_totals()}, // to be field when checking for spent_outputs below
                     {"total_received" , init_totals()}, // to be field when checking for spent_outputs below
                     {"timestamp"      , static_cast<uint64_t>(tx.timestamp)*1000},
@@ -365,6 +364,7 @@ OpenMoneroRequests::get_address_txs(
                           {"key_image"  , input.key_image},
                           {"tx_pub_key" , out.tx_pub_key},
                           {"out_index"  , out.out_index},
+                          {"unlock_time", out.unlock_time}, // unlock time in Haven is on output level
                           {"mixin"      , out.mixin}});
                     }
 
@@ -379,6 +379,7 @@ OpenMoneroRequests::get_address_txs(
 
             if (xmr_accounts->select_for_tx(tx.id.data, outs))
             {
+                xmr_accounts->select_outputs_for_account_spendability_check(tx.id.data, tx.height, outs);
                 json j_spent_outputs = json::array();
 
                 for (XmrOutput &out: outs)
@@ -386,7 +387,7 @@ OpenMoneroRequests::get_address_txs(
                     add_to_total(j_tx["total_received"], out.asset_type, out.amount);
                     add_to_total(j_total_received, out.asset_type, out.amount);
 
-                    if (bool {tx.spendable})
+                    if (bool {out.spendable})
                     {
                         add_to_total(j_total_received_unlocked, out.asset_type, out.amount);
                     }
@@ -510,6 +511,7 @@ OpenMoneroRequests::get_address_info(
     j_response = json {
             {"locked_funds"           , "0"},    // locked xmr (e.g., younger than 10 blocks)
             {"total_received"         , nullptr}, // calculated in this function
+            {"total_received_unlocked", nullptr}, // calculated in this function
             {"total_sent"             , nullptr}, // calculated in this function
             {"scanned_height"         , 0},    // not used. it is here to match mymonero
             {"scanned_block_height"   , 0},    // taken from Accounts table
@@ -553,6 +555,7 @@ OpenMoneroRequests::get_address_info(
 
         // calculate how much user has received and sent of each distint asset
         json j_total_received = init_totals();
+        json j_total_received_unlocked = init_totals();
         json j_total_sent = init_totals();
         
         j_response["total_received"]          = j_total_received;
@@ -568,9 +571,8 @@ OpenMoneroRequests::get_address_info(
         xmr_accounts->select(acc.id.data, txs);
 
         // now, filter out or updated transactions from txs vector that no
-        // longer exisit in the recent blocks. Update is done to check for their
-        // spendability status.
-        if (xmr_accounts->select_txs_for_account_spendability_check(
+        // longer exisit in the recent blocks. 
+        if (xmr_accounts->select_txs_for_account_orphaned_check(
                     acc.id.data, txs))
         {
             json j_spent_outputs = json::array();
@@ -578,9 +580,12 @@ OpenMoneroRequests::get_address_info(
             for (XmrTransaction tx: txs)
             {
                 vector<XmrOutput> outs;
-
+            
                 if (xmr_accounts->select_for_tx(tx.id.data, outs))
                 {
+                    //Update outputs for their spendability status.
+                    xmr_accounts->select_outputs_for_account_spendability_check(tx.id.data, tx.height, outs);
+
                     for (XmrOutput &out: outs)
                     {
                         // check if the output, has been spend
@@ -606,6 +611,11 @@ OpenMoneroRequests::get_address_info(
 
                         add_to_total(j_total_received, out.asset_type, out.amount);
 
+                        if (bool {out.spendable})
+                        {
+                           add_to_total(j_total_received_unlocked, out.asset_type, out.amount);
+                        }
+            
                     } //  for (XmrOutput &out: outs)
 
                 } //  if (xmr_accounts->select_outputs_for_tx(tx.id, outs))
@@ -613,6 +623,7 @@ OpenMoneroRequests::get_address_info(
             } // for (XmrTransaction tx: txs)
 
             j_response["total_received"] = j_total_received;
+            j_response["total_received_unlocked"] = j_total_received_unlocked;
             j_response["total_sent"]     = j_total_sent;
 
             j_response["spent_outputs"]  = j_spent_outputs;
@@ -737,17 +748,7 @@ OpenMoneroRequests::get_unspent_outs(
 
             for (XmrTransaction& tx: txs)
             {
-                // we skip over locked outputs
-                // as they cant be spent anyway.
-                // thus no reason to return them to the frontend
-                // for constructing a tx.
-
-                if (!current_bc_status->is_tx_unlocked(
-                            tx.unlock_time, tx.height))
-                {
-                    continue;
-                }
-
+          
                 // skip over transactions that definitely do not have
                 // unspent outputs with expected asset type
                 if (tx.str_source != asset_type && tx.str_dest != asset_type)
@@ -764,6 +765,16 @@ OpenMoneroRequests::get_unspent_outs(
 
                 for (XmrOutput &out: outs)
                 {
+                    // we skip over locked outputs
+                    // as they cant be spent anyway.
+                    // thus no reason to return them to the frontend
+                    // for constructing a tx.
+                    if (!current_bc_status->is_tx_unlocked(
+                                out.unlock_time, tx.height))
+                    {
+                        continue;
+                    }
+
                     // skip outputs considered as dust
                     if (out.amount < dust_threshold)
                     {
@@ -1922,6 +1933,7 @@ OpenMoneroRequests::get_tx(
                                       {"key_image"  , input.key_image},
                                       {"tx_pub_key" , out.tx_pub_key},
                                       {"out_index"  , out.out_index},
+                                      {"unlock_time" ,out.unlock_time},
                                       {"mixin"      , out.mixin}});
                             }
 

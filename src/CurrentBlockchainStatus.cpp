@@ -139,6 +139,28 @@ CurrentBlockchainStatus::is_tx_unlocked(
                                          block_height);
 }
 
+uint64_t
+CurrentBlockchainStatus::get_output_unlock_time(
+        const transaction& tx, uint64_t block_height,
+        const uint64_t& output_idx_in_tx)
+{
+    uint64_t out_unlock_time = 0;
+
+    if (tx.version >= POU_TRANSACTION_VERSION)
+    {
+        out_unlock_time = tx.output_unlock_times[output_idx_in_tx];
+    }
+    else 
+    {
+        out_unlock_time = tx.unlock_time;
+    }
+
+    if (out_unlock_time == 0)
+        out_unlock_time = block_height + CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
+
+    return out_unlock_time;
+}
+
 
 bool
 CurrentBlockchainStatus::get_block(uint64_t height, block& blk)

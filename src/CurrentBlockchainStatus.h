@@ -94,6 +94,9 @@ public:
                    TxUnlockChecker const& tx_unlock_checker
                         = TxUnlockChecker());
 
+    virtual uint64_t
+    get_output_unlock_time(const transaction& tx, uint64_t block_height, const uint64_t& output_idx_in_tx);
+
     virtual bool
     get_block(uint64_t height, block &blk);
 

@@ -224,14 +224,18 @@ for (auto const& tx_tuple: txs_data)
     // here. For coinbase its always given, so no need to check
     // for that
 
-    uint64_t tx_unlock_time = tx.unlock_time;
+    // in Haven unlock time is per output not per tx like in monero
+    // Havens cryptonote::transaction helds an array of output unlock times
+    // in openhaven we store them together with belonging output
+
+   /*  uint64_t output_unlock_time = tx.unlock_time;
 
     if (tx_unlock_time == 0)
         tx_unlock_time = blk_height
             + CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
 
     bool is_spendable = current_bc_status->is_tx_unlocked(
-            tx_unlock_time, blk_height);
+            tx_unlock_time, blk_height); */
 
     // this is id of txs in lmdb blockchain table.
     // it will be used mostly to sort txs in the frontend.
@@ -321,19 +325,10 @@ for (auto const& tx_tuple: txs_data)
         tx_data.str_source       = strSource;
         tx_data.str_dest         = strDest;
 
-                                     // this is current block
-                                     // + unlock time
-                                     // for regular tx,
-                                     // the unlock time is
-                                     // default of 10 blocks.
-                                     // for coinbase tx it is 60 blocks
-        tx_data.unlock_time      = tx_unlock_time;
-
         tx_data.height           = blk_height;
         tx_data.coinbase         = is_coinbase;
         tx_data.is_rct           = is_rct;
         tx_data.rct_type         = rct_type;
-        tx_data.spendable        = is_spendable;
         tx_data.payment_id       = current_bc_status
                                     ->get_payment_id_as_string(tx);
         tx_data.mixin            = mixin_no;
@@ -381,8 +376,16 @@ for (auto const& tx_tuple: txs_data)
             out_data.rct_amount   = pod_to_hex(out_info.rtc_amount);
             out_data.global_index = amount_specific_indices
                     .at(out_data.out_index).first;
+            out_data.asset_index = amount_specific_indices
+                    .at(out_data.out_index).second;
             out_data.mixin        = tx_data.mixin;
             out_data.timestamp    = tx_data.timestamp;
+
+            uint64_t output_unlock_time = current_bc_status->get_output_unlock_time(tx, blk_height, out_info.idx_in_tx);
+            bool is_spendable = current_bc_status->is_tx_unlocked(output_unlock_time, blk_height);
+
+            out_data.unlock_time = output_unlock_time;
+            out_data.spendable = is_spendable;
 
             outputs_found.push_back(std::move(out_data));
 
@@ -393,6 +396,8 @@ for (auto const& tx_tuple: txs_data)
                 known_outputs_keys.insert(
                     {out_info.pub_key, out_info.amount});
             }
+
+
 
         } //  for (auto& out_info: outputs_identified)
 
@@ -552,12 +557,10 @@ for (auto const& tx_tuple: txs_data)
                                               //spending,
                                               //total_recieved is 0
                 tx_data.total_sent       = total_sent;
-                tx_data.unlock_time      = tx_unlock_time;
                 tx_data.height           = blk_height;
                 tx_data.coinbase         = is_coinbase;
                 tx_data.is_rct           = is_rct;
                 tx_data.rct_type         = rct_type;
-                tx_data.spendable        = is_spendable;
                 tx_data.payment_id       = current_bc_status
                                 ->get_payment_id_as_string(tx);
                 tx_data.mixin            = mixin_no;

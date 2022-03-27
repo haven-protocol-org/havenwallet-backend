@@ -6,10 +6,11 @@ namespace xmreg
 RandomOutputs::RandomOutputs(
         CurrentBlockchainStatus const* _cbs,
         vector<uint64_t> const& _amounts,
-        uint64_t _outs_count)
+        uint64_t _outs_count, std::string _asset_type)
     : cbs {_cbs},
       amounts {_amounts},
-      outs_count {_outs_count}
+      outs_count {_outs_count},
+      asset_type {_asset_type}
 {
 }
 
@@ -38,6 +39,7 @@ RandomOutputs::get_output_pub_key(
     COMMAND_RPC_GET_OUTPUTS_BIN::response res;
 
     req.outputs.push_back(get_outputs_out {amount, global_output_index});
+    req.asset_type = asset_type;
 
     if (!cbs->get_outs(req, res))
     {

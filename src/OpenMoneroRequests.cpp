@@ -930,10 +930,12 @@ OpenMoneroRequests::get_random_outs(
     }
 
     uint64_t count;
+    std::string asset_type;
 
     try
     {
         count = j_request["count"];
+        asset_type = j_request["asset_type"];
     }
     catch (json::exception const& e)
     {

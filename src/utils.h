@@ -175,20 +175,20 @@ timestamps_time_scale(const vector<uint64_t>& timestamps,
 
 
 
-bool
-decode_ringct(const rct::rctSig & rv,
-              const crypto::public_key &pub,
-              const crypto::secret_key &sec,
-              unsigned int i,
-              rct::key & mask,
-              uint64_t & amount);
+// bool
+// decode_ringct(const rct::rctSig & rv,
+//               const crypto::public_key &pub,
+//               const crypto::secret_key &sec,
+//               unsigned int i,
+//               rct::key & mask,
+//               uint64_t & amount);
 
-bool
-decode_ringct(rct::rctSig const& rv,
-              crypto::key_derivation const& derivation,
-              unsigned int i,
-              rct::key& mask,
-              uint64_t& amount);
+// bool
+// decode_ringct(rct::rctSig const& rv,
+//               crypto::key_derivation const& derivation,
+//               unsigned int i,
+//               rct::key& mask,
+//               uint64_t& amount);
 bool
 url_decode(const std::string& in, std::string& out);
 

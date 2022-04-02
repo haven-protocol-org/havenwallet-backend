@@ -50,7 +50,7 @@ public:
 
     RandomOutputs(CurrentBlockchainStatus const* _cbs,
                   vector<uint64_t> const& _amounts,
-                  uint64_t _outs_count, std::string _asset_type);
+                  uint64_t _outs_count, string _asset_type);
 
     virtual bool
     find_random_outputs();
@@ -66,7 +66,7 @@ protected:
 
     vector<uint64_t> amounts;
     uint64_t outs_count;
-    std::string asset_type;
+    string asset_type;
 
     outs_for_amount_v found_outputs;
 

@@ -850,6 +850,8 @@ OpenMoneroRequests::get_unspent_outs(
                             {"public_key"      , out.out_pub_key},
                             {"index"           , out.out_index},
                             {"global_index"    , out.global_index},
+                            {"asset_index"     , out.asset_index},
+                            {"asset_type"      , out.asset_type},
                             {"rct"             , rct},
                             {"tx_id"           , out.tx_id},
                             {"tx_hash"         , tx.hash},
@@ -975,7 +977,7 @@ OpenMoneroRequests::get_random_outs(
 
     vector<RandomOutputs::outs_for_amount> found_outputs;
 
-    if (current_bc_status->get_random_outputs(amounts, count, found_outputs))
+    if (current_bc_status->get_random_outputs(amounts, count, asset_type, found_outputs))
     {
         json& j_amount_outs = j_response["amount_outs"];
 
@@ -1003,6 +1005,7 @@ OpenMoneroRequests::get_random_outs(
 
                 json out_details {
                         {"global_index", out.global_amount_index},
+                        {"asset_index", out.global_amount_index},
                         {"public_key"  , pod_to_hex(out.out_key)},
                         {"rct"         , rct}
                 };

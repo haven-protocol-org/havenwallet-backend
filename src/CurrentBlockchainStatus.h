@@ -163,7 +163,7 @@ public:
 
     virtual bool
     get_random_outputs(vector<uint64_t> const& amounts,
-                       uint64_t outs_count,
+                       uint64_t outs_count, string asset_type,
                        RandomOutputs::outs_for_amount_v&
                        found_outputs);
 
@@ -378,7 +378,7 @@ protected:
     virtual unique_ptr<RandomOutputs>
     create_random_outputs_object(
             vector<uint64_t> const& amounts,
-            uint64_t outs_count) const;
+            uint64_t outs_count, string asset_type) const;
 
 };
 

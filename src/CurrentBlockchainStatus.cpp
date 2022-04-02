@@ -494,20 +494,20 @@ CurrentBlockchainStatus::get_output_histogram(
 unique_ptr<RandomOutputs>
 CurrentBlockchainStatus::create_random_outputs_object(
         vector<uint64_t> const& amounts,
-        uint64_t outs_count) const
+        uint64_t outs_count, string asset_type) const
 {
     return make_unique<RandomOutputs>(
-            this, amounts, outs_count);
+            this, amounts, outs_count, asset_type);
 }
 
 bool
 CurrentBlockchainStatus::get_random_outputs(
         vector<uint64_t> const& amounts,
-        uint64_t outs_count,
+        uint64_t outs_count, string asset_type,
         RandomOutputs::outs_for_amount_v& found_outputs)
 {   
     unique_ptr<RandomOutputs> ro
-            = create_random_outputs_object(amounts, outs_count);
+            = create_random_outputs_object(amounts, outs_count, asset_type);
 
     if (!ro->find_random_outputs())
     {

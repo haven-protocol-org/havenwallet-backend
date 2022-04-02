@@ -6,7 +6,7 @@ namespace xmreg
 RandomOutputs::RandomOutputs(
         CurrentBlockchainStatus const* _cbs,
         vector<uint64_t> const& _amounts,
-        uint64_t _outs_count, std::string _asset_type)
+        uint64_t _outs_count, string _asset_type)
     : cbs {_cbs},
       amounts {_amounts},
       outs_count {_outs_count},

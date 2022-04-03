@@ -138,7 +138,7 @@ bool
 RandomOutputs::get_output_pub_key(
         uint64_t amount,
         uint64_t global_output_index,
-        crypto::public_key& out_pk) const
+        crypto::public_key& out_pk, uint64_t& real_global_index) const
 {
     COMMAND_RPC_GET_OUTPUTS_BIN::request req;
     COMMAND_RPC_GET_OUTPUTS_BIN::response res;
@@ -156,6 +156,7 @@ RandomOutputs::get_output_pub_key(
         return false;
 
     out_pk = res.outs[0].key;
+    real_global_index = res.outs[0].output_id;
 
     return true;
 }
@@ -185,7 +186,7 @@ RandomOutputs::find_random_outputs()
     std::vector<uint64_t> rct_offsets;
     double outputs_per_second;
     if (request_rct_outputs 
-        && (!cbs->get_rct_output_distribution(rct_offsets)
+        && (!cbs->get_rct_output_distribution(rct_offsets, asset_type)
             || !get_outputs_per_second(rct_offsets, outputs_per_second)))
         return false;
 
@@ -248,17 +249,18 @@ RandomOutputs::find_random_outputs()
             seen_indices.emplace(random_global_amount_idx);
 
             crypto::public_key found_output_public_key;
+            uint64_t real_global_index;
 
             if (!get_output_pub_key(amount,
                                     random_global_amount_idx,
-                                    found_output_public_key))
+                                    found_output_public_key, real_global_index))
             {
                 OMERROR << "Cant find outputs public key for amount "
                         << amount << " and global_index of "
                         << random_global_amount_idx;
             }
 
-            outs_info.outs.push_back({random_global_amount_idx,
+            outs_info.outs.push_back({real_global_index,
                                       found_output_public_key});
         }
 

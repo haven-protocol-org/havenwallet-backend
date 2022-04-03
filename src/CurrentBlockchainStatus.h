@@ -173,7 +173,7 @@ public:
             COMMAND_RPC_GET_OUTPUT_HISTOGRAM::response& res) const;
 
     virtual bool
-    get_rct_output_distribution(std::vector<uint64_t>& rct_offsets) const;
+    get_rct_output_distribution(std::vector<uint64_t>& rct_offsets, std::string asset_type) const;
 
     virtual bool
     get_outs(COMMAND_RPC_GET_OUTPUTS_BIN::request const& req,

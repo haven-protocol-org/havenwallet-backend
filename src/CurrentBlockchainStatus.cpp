@@ -493,10 +493,10 @@ CurrentBlockchainStatus::get_output_histogram(
 
 bool
 CurrentBlockchainStatus::get_rct_output_distribution(
-        std::vector<uint64_t>& rct_offsets) const
+        std::vector<uint64_t>& rct_offsets, std::string asset_type) const
 {
 
-    if (!rpc->get_rct_output_distribution(rct_offsets))
+    if (!rpc->get_rct_output_distribution(rct_offsets, asset_type))
     {
         OMERROR << "rpc->get_rct_output_distribution() "
                    "get_rct_output_distribution failed";

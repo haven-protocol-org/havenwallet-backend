@@ -164,16 +164,19 @@ RPCCalls::get_pricing_record(offshore::pricing_record& pr, const uint64_t height
 }
  
 bool
-RPCCalls::get_rct_output_distribution(std::vector<uint64_t>& rct_offsets)
+RPCCalls::get_rct_output_distribution(std::vector<uint64_t>& rct_offsets, std::string asset_type)
 {
     COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::request   req;
     COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::response  res;    
 
+    req.rct_asset_type = asset_type;
     req.amounts = {0}; // ringct outputs only
     req.cumulative = true;
     req.from_height = 0;
-    req.to_height = 0;
+    req.default_tx_spendable_age = CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
+    //req.to_height = 0;
     req.binary = true; // fastest request over local network
+    req.compress = true;
 
     bool r {false};
 

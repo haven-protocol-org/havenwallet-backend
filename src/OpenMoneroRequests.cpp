@@ -763,14 +763,16 @@ OpenMoneroRequests::get_unspent_outs(
                     continue;
                 }
 
+                //Update outputs for their spendability status.
+                xmr_accounts->select_outputs_for_account_spendability_check(tx.id.data, tx.height, outs);
+
                 for (XmrOutput &out: outs)
                 {
                     // we skip over locked outputs
                     // as they cant be spent anyway.
                     // thus no reason to return them to the frontend
                     // for constructing a tx.
-                    if (!current_bc_status->is_tx_unlocked(
-                                out.unlock_time, tx.height))
+                    if (!out.spendable)
                     {
                         continue;
                     }

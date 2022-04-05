@@ -47,14 +47,15 @@ RandomOutputs::get_outputs_per_second(
 bool
 RandomOutputs::gamma_pick(
         std::vector<uint64_t> rct_offsets, 
+        uint64_t start_height,
         double outputs_per_second,
         uint64_t& decoy_output_index) const
 {
     static_assert(std::is_empty<crypto::random_device>(), 
                   "random_device is no longer cheap to construct");
     static constexpr const crypto::random_device engine{};
-    const auto end = rct_offsets.end() - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
-    const uint64_t num_rct_outputs = *(rct_offsets.end() - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE - 1);
+    const auto end = rct_offsets.end() - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE - start_height;
+    const uint64_t num_rct_outputs = *(rct_offsets.end() - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE - 1 - start_height);
 
     for (unsigned tries = 0; tries < max_no_of_trials; ++tries)
     {
@@ -138,7 +139,7 @@ bool
 RandomOutputs::get_output_pub_key(
         uint64_t amount,
         uint64_t global_output_index,
-        crypto::public_key& out_pk, uint64_t& real_global_index) const
+        crypto::public_key& out_pk, uint64_t& real_global_index, bool& unlocked) const
 {
     COMMAND_RPC_GET_OUTPUTS_BIN::request req;
     COMMAND_RPC_GET_OUTPUTS_BIN::response res;
@@ -157,6 +158,7 @@ RandomOutputs::get_output_pub_key(
 
     out_pk = res.outs[0].key;
     real_global_index = res.outs[0].output_id;
+    unlocked = res.outs[0].unlocked;
 
     return true;
 }
@@ -184,9 +186,10 @@ RandomOutputs::find_random_outputs()
 
     // get the output distribution for selecting RingCT decoys
     std::vector<uint64_t> rct_offsets;
+    uint64_t start_height;
     double outputs_per_second;
     if (request_rct_outputs 
-        && (!cbs->get_rct_output_distribution(rct_offsets, asset_type)
+        && (!cbs->get_rct_output_distribution(rct_offsets, start_height, asset_type)
             || !get_outputs_per_second(rct_offsets, outputs_per_second)))
         return false;
 
@@ -227,8 +230,9 @@ RandomOutputs::find_random_outputs()
 
         // use it as a failself, as we don't want infinit loop here
         size_t trial_i {0};
+        size_t found_outs = {0};
 
-        while (seen_indices.size() < outs_count)
+        while (found_outs < outs_count)
         {
             if (trial_i++ > max_no_of_trials)
             {
@@ -240,7 +244,7 @@ RandomOutputs::find_random_outputs()
             uint64_t random_global_amount_idx;
             if (amount != 0)
                 random_global_amount_idx = triangular_pick(num_pre_rct_outs);
-            else if (!gamma_pick(rct_offsets, outputs_per_second, random_global_amount_idx))
+            else if (!gamma_pick(rct_offsets, start_height, outputs_per_second, random_global_amount_idx))
                 return false;
 
             if (seen_indices.count(random_global_amount_idx) > 0)
@@ -250,18 +254,30 @@ RandomOutputs::find_random_outputs()
 
             crypto::public_key found_output_public_key;
             uint64_t real_global_index;
+            bool unlocked;
 
             if (!get_output_pub_key(amount,
                                     random_global_amount_idx,
-                                    found_output_public_key, real_global_index))
+                                    found_output_public_key, real_global_index, unlocked))
             {
                 OMERROR << "Cant find outputs public key for amount "
                         << amount << " and global_index of "
                         << random_global_amount_idx;
             }
 
+            if (!unlocked) {
+
+                OMVLOG1 << "output not unlocked, skip over index " << real_global_index;
+                continue;
+
+            }
+
+
+            OMVLOG1 << "output will be added " << real_global_index;
+
             outs_info.outs.push_back({real_global_index,
                                       found_output_public_key});
+            found_outs++;
         }
 
         found_outputs.push_back(outs_info);

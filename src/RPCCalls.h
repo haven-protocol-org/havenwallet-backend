@@ -59,7 +59,7 @@ public:
     get_pricing_record(offshore::pricing_record& pr, const uint64_t height);
 
     virtual bool
-    get_rct_output_distribution(std::vector<uint64_t>& rct_offsets, std::string asset_type);
+    get_rct_output_distribution(std::vector<uint64_t>& rct_offsets, uint64_t& start_height, std::string asset_type);
 
     virtual ~RPCCalls() = default;
 

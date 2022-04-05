@@ -164,7 +164,7 @@ RPCCalls::get_pricing_record(offshore::pricing_record& pr, const uint64_t height
 }
  
 bool
-RPCCalls::get_rct_output_distribution(std::vector<uint64_t>& rct_offsets, std::string asset_type)
+RPCCalls::get_rct_output_distribution(std::vector<uint64_t>& rct_offsets, uint64_t& start_height, std::string asset_type)
 {
     COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::request   req;
     COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::response  res;    
@@ -174,7 +174,7 @@ RPCCalls::get_rct_output_distribution(std::vector<uint64_t>& rct_offsets, std::s
     req.cumulative = true;
     req.from_height = 0;
     req.default_tx_spendable_age = CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
-    //req.to_height = 0;
+    req.to_height = 0;
     req.binary = true; // fastest request over local network
     req.compress = true;
 
@@ -205,6 +205,7 @@ RPCCalls::get_rct_output_distribution(std::vector<uint64_t>& rct_offsets, std::s
         return false;
     }
     rct_offsets = res.distributions[0].data.distribution;
+    start_height = res.distributions[0].data.start_height;
 
     return true;
 }

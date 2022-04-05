@@ -75,6 +75,7 @@ protected:
 
     virtual bool
     gamma_pick(std::vector<uint64_t> rct_offsets,
+               uint64_t start_height,
                double outputs_per_second,
                uint64_t& decoy_output_index) const;
 
@@ -84,7 +85,7 @@ protected:
     virtual bool
     get_output_pub_key(uint64_t amount,
                        uint64_t global_output_index,
-                       crypto::public_key& out_pk, uint64_t& real_global_index) const;
+                       crypto::public_key& out_pk, uint64_t& real_global_index, bool& unlocked) const;
 
     virtual bool
     get_output_histogram(const std::vector<uint64_t> pre_rct_output_amounts,

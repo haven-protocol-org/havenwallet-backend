@@ -75,7 +75,6 @@ protected:
 
     virtual bool
     gamma_pick(std::vector<uint64_t> rct_offsets,
-               uint64_t start_height,
                double outputs_per_second,
                uint64_t& decoy_output_index) const;
 

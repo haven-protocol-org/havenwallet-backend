@@ -47,15 +47,14 @@ RandomOutputs::get_outputs_per_second(
 bool
 RandomOutputs::gamma_pick(
         std::vector<uint64_t> rct_offsets, 
-        uint64_t start_height,
         double outputs_per_second,
         uint64_t& decoy_output_index) const
 {
     static_assert(std::is_empty<crypto::random_device>(), 
                   "random_device is no longer cheap to construct");
     static constexpr const crypto::random_device engine{};
-    const auto end = rct_offsets.end() - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE - start_height;
-    const uint64_t num_rct_outputs = *(rct_offsets.end() - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE - 1 - start_height);
+    const auto end = rct_offsets.end() - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
+    const uint64_t num_rct_outputs = *(rct_offsets.end() - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE - 1);
 
     for (unsigned tries = 0; tries < max_no_of_trials; ++tries)
     {
@@ -186,10 +185,9 @@ RandomOutputs::find_random_outputs()
 
     // get the output distribution for selecting RingCT decoys
     std::vector<uint64_t> rct_offsets;
-    uint64_t start_height;
     double outputs_per_second;
     if (request_rct_outputs 
-        && (!cbs->get_rct_output_distribution(rct_offsets, start_height, asset_type)
+        && (!cbs->get_rct_output_distribution(rct_offsets, asset_type)
             || !get_outputs_per_second(rct_offsets, outputs_per_second)))
         return false;
 
@@ -202,7 +200,7 @@ RandomOutputs::find_random_outputs()
         RandomOutputs::outs_for_amount outs_info;
         outs_info.amount = amount;
 
-        uint64_t num_pre_rct_outs;
+        uint64_t num_pre_rct_outs = 0;
         if (amount != 0)
         {
             // find histogram_entry for amount that we look
@@ -244,7 +242,7 @@ RandomOutputs::find_random_outputs()
             uint64_t random_global_amount_idx;
             if (amount != 0)
                 random_global_amount_idx = triangular_pick(num_pre_rct_outs);
-            else if (!gamma_pick(rct_offsets, start_height, outputs_per_second, random_global_amount_idx))
+            else if (!gamma_pick(rct_offsets, outputs_per_second, random_global_amount_idx))
                 return false;
 
             if (seen_indices.count(random_global_amount_idx) > 0)

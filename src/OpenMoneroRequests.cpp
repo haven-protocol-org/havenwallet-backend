@@ -28,32 +28,7 @@ handel_::operator()(const shared_ptr< Session > session)
     session->fetch(content_length, this->request_callback);
 }
 
-json
-init_totals()
-{
-    return json{{    "XAG",        "0"      },
-                {    "XAU",        "0"      },
-                {    "XAUD",       "0"      },
-                {    "XBTC",       "0"      },
-                {    "XCAD",       "0"      },
-                {    "XCHF",       "0"      },
-                {    "XCNY",       "0"      },
-                {    "XEUR",       "0"      },
-                {    "XGBP",       "0"      },
-                {    "XJPY",       "0"      },
-                {    "XNOK",       "0"      },
-                {    "XNZD",       "0"      },
-                {    "XUSD",       "0"      },
-                {    "XHV",        "0"      }};
-}
 
-void
-add_to_total(json & j_totals, string asset_type, uint64_t amount)
-{
-    uint64_t total = stoull(j_totals[asset_type].get<std::string>());
-    total += amount;
-    j_totals[asset_type] = std::to_string(total);
-}
 
 OpenMoneroRequests::OpenMoneroRequests(
         shared_ptr<MySqlAccounts> _acc, 
@@ -409,62 +384,56 @@ OpenMoneroRequests::get_address_txs(
 
     // append txs found in mempool to the json returned
 
-    // json j_mempool_tx;
+    json j_mempool_tx;
 
     // TO-DO: add total from mempool txs
-    // if (current_bc_status->find_txs_in_mempool(
-    //         xmr_address, j_mempool_tx))
-    // {
-    //     if(!j_mempool_tx.empty())
-    //     {
-    //         json j_total_received_mempool = init_totals();
-    //         json j_total_sent_mempool = init_totals();
+    if (current_bc_status->find_txs_in_mempool(
+            xmr_address, j_mempool_tx))
+    {
+        if(!j_mempool_tx.empty())
+        {
+            json j_total_received_mempool = init_totals();
+            //json j_total_sent_mempool = init_totals();
 
-    //         // get last tx id (i.e., index) so that we can
-    //         // set some ids for the mempool txs. These ids are
-    //         // used for sorting in the frontend. Since we want mempool
-    //         // tx to be first, they need to be higher than last_tx_id_db
-    //         uint64_t last_tx_id_db {0};
+            // get last tx id (i.e., index) so that we can
+            // set some ids for the mempool txs. These ids are
+            // used for sorting in the frontend. Since we want mempool
+            // tx to be first, they need to be higher than last_tx_id_db
+            uint64_t last_tx_id_db {0};
 
-    //         if (!j_response["transactions"].empty())
-    //         {
-    //             last_tx_id_db = j_response["transactions"].back()["id"];
-    //         }
+            if (!j_response["transactions"].empty())
+            {
+                last_tx_id_db = j_response["transactions"].back()["id"];
+            }
 
 
-    //         for (json& j_tx: j_mempool_tx)
-    //         {
-    //             //cout << "mempool j_tx[\"total_received\"]: "
-    //             //     << j_tx["total_received"] << endl;
+            for (json& j_tx: j_mempool_tx)
+            {
+                //cout << "mempool j_tx[\"total_received\"]: "
+                //     << j_tx["total_received"] << endl;
 
-    //             j_tx["id"] = ++last_tx_id_db;
+                j_tx["id"] = ++last_tx_id_db;
 
-    //             total_received_mempool += boost::lexical_cast<uint64_t>(
-    //                         j_tx["total_received"].get<string>());
-    //             total_sent_mempool     += boost::lexical_cast<uint64_t>(
-    //                         j_tx["total_sent"].get<string>());
+                j_total_received_mempool = merge_totals(j_tx["total_received"], j_total_received_mempool);
+                //total_sent_mempool     = merge_totals(j_tx["total_sent"]);
 
-    //             j_response["transactions"].push_back(j_tx);
-    //         }
+                j_response["transactions"].push_back(j_tx);
+            }
 
-    //         // we account for mempool txs when providing final
-    //         // unlocked and locked balances.
+            // we account for mempool txs when providing final
+            // unlocked and locked balances.
 
-    //         j_response["total_received"]
-    //                 = std::to_string(
-    //                     boost::lexical_cast<uint64_t>(
-    //                         j_response["total_received"].get<string>())
-    //                                        + total_received_mempool - total_sent_mempool);
+            j_response["total_received"] = merge_totals(j_response["total_received"], j_total_received_mempool);
 
-    //         j_response["total_received_unlocked"]
-    //                 = std::to_string(
-    //                     boost::lexical_cast<uint64_t>(
-    //                         j_response["total_received_unlocked"].get<string>())
-    //                                       + total_received_mempool - total_sent_mempool);
+            // j_response["total_sent"]
+            //         = std::to_string(
+            //             boost::lexical_cast<uint64_t>(
+            //                 j_response["total_received_unlocked"].get<string>())
+            //                               + total_received_mempool - total_sent_mempool);
 
-    //     } //if(!j_mempool_tx.empty())
+        } //if(!j_mempool_tx.empty())
 
-    // } // current_bc_status->find_txs_in_mempool
+    } // current_bc_status->find_txs_in_mempool
 
     string response_body = j_response.dump();
 

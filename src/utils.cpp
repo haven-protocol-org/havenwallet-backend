@@ -1113,7 +1113,46 @@ populate_known_outputs_from_csv(
 
 }
 
+    void
+    add_to_total(json & j_totals, string asset_type, uint64_t amount)
+    {
+        uint64_t total = stoull(j_totals[asset_type].get<std::string>());
+        total += amount;
+        j_totals[asset_type] = std::to_string(total);
+    }
 
+    json
+    merge_totals(json j_totalsA, json j_totalsB)
+    {
+        json j_totals = {};
+
+        for(auto& [asset_type, amount] : j_totalsA.items()) 
+        {
+            uint64_t total =  stoull(amount.get<std::string>()) + stoull(j_totalsB[asset_type].get<std::string>());
+            j_totals[asset_type] = std::to_string(total);
+        }
+
+        return j_totals;
+    }
+
+    json
+    init_totals()
+    {
+        return json{{    "XAG",        "0"      },
+                    {    "XAU",        "0"      },
+                    {    "XAUD",       "0"      },
+                    {    "XBTC",       "0"      },
+                    {    "XCAD",       "0"      },
+                    {    "XCHF",       "0"      },
+                    {    "XCNY",       "0"      },
+                    {    "XEUR",       "0"      },
+                    {    "XGBP",       "0"      },
+                    {    "XJPY",       "0"      },
+                    {    "XNOK",       "0"      },
+                    {    "XNZD",       "0"      },
+                    {    "XUSD",       "0"      },
+                    {    "XHV",        "0"      }};
+    }
 
 }
 

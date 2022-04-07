@@ -805,7 +805,8 @@ identifier.identify();
 auto const& outputs_identified 
     = identifier.get<Output>()->get();
 
-auto total_received = calc_total_xmr(outputs_identified);
+
+
 
 //vector<uint64_t> amount_specific_indices;
 
@@ -813,6 +814,20 @@ auto total_received = calc_total_xmr(outputs_identified);
 // save them into json to be returned.
 if (!outputs_identified.empty())
 {
+
+
+    // Get tx's asset source and dest. Each tx has a single source,
+    // and a single dest. The most basic is XHV to XHV.
+    std::string strSource;
+    std::string strDest;
+    bool r = cryptonote::get_tx_asset_types(tx, tx_hash, strSource, strDest, false);
+
+    json total_received = init_totals();
+
+    for (auto& out_info:  outputs_identified) {
+        add_to_total(total_received, out_info.asset_type, out_info.amount);
+    }
+
     auto tx_hash_str = pod_to_hex(tx_hash);
     auto tx_hash_prefix_str
         = pod_to_hex(get_transaction_prefix_hash(tx));
@@ -825,28 +840,30 @@ if (!outputs_identified.empty())
 
     json j_tx;
 
-    j_tx["id"]             = 0; // dont have any database id
-                                //for tx in mempool
-                                // this id is used for
-                                // sorting txs in the frontend.
+    j_tx["id"]              = 0; // dont have any database id
+                                 //for tx in mempool
+                                 // this id is used for
+                                 // sorting txs in the frontend.
 
-    j_tx["hash"]           = tx_hash_str;
-    j_tx["tx_pub_key"]     = tx_pub_key_str;
-    j_tx["timestamp"]      = recieve_time*1e3; // when it got into mempool
-    j_tx["total_received"] = std::to_string(total_received);
-    j_tx["total_sent"]     = "0"; // to be set later when looking for key images
-    j_tx["unlock_time"]    = "0"; // for mempool we set it to zero
-                                // since we dont have block_height to work with
-    j_tx["height"]         = current_height; // put current blockchain height,
+    j_tx["hash"]            = tx_hash_str;
+    j_tx["tx_pub_key"]      = tx_pub_key_str;
+    j_tx["timestamp"]       = recieve_time*1e3; // when it got into mempool
+    j_tx["total_received"]  = total_received;
+    j_tx["total_sent"]      = init_totals(); // to be set later when looking for key images
+    // j_tx["unlock_time"]    = "0"; // for mempool we set it to zero
+    //                             // since we dont have block_height to work with
+    j_tx["height"]          = current_height; // put current blockchain height,
                                 // just to indicate to frontend that this
                                 // tx is younger than 10 blocks so that
                                 // it shows unconfirmed message.
-    j_tx["payment_id"]     = current_bc_status->get_payment_id_as_string(tx);
-    j_tx["coinbase"]       = false; // pool tx are not coinbase, so always false
-    j_tx["is_rct"]         = is_rct;
-    j_tx["rct_type"]       = rct_type;
-    j_tx["mixin"]          = mixin_no;
-    j_tx["mempool"]        = true;
+    j_tx["payment_id"]      = current_bc_status->get_payment_id_as_string(tx);
+    j_tx["coinbase"]        = false; // pool tx are not coinbase, so always false
+    j_tx["is_rct"]          = is_rct;
+    j_tx["rct_type"]        = rct_type;
+    j_tx["mixin"]           = mixin_no;
+    j_tx["mempool"]         = true;
+    j_tx["from_asset_type"] = strSource;
+    j_tx["to_asset_type"]   = strDest;
 
     j_transactions->push_back(j_tx);
 }
@@ -878,7 +895,7 @@ if (!inputs_identfied.empty())
         mixin_no = xmreg::get_mixin_no(tx);
 
     json spend_keys;
-    uint64_t total_sent {0};
+    json total_sent = init_totals();
 
     for (auto& in_info: inputs_identfied)
     {
@@ -890,10 +907,11 @@ if (!inputs_identfied.empty())
         if (local_xmr_accounts->output_exists(
                     pod_to_hex(in_info.out_pub_key), out))
         {
-            total_sent += out.amount;
+            add_to_total(total_sent, out.asset_type, out.amount);
 
             spend_keys.push_back({
                   {"key_image" , pod_to_hex(in_info.key_img)},
+                  {"asset_type", out.asset_type},
                   {"amount"    , std::to_string(out.amount)},
                   {"tx_pub_key", out.tx_pub_key},
                   {"out_index" , out.out_index},
@@ -917,7 +935,7 @@ if (!inputs_identfied.empty())
 
             json& j_tx = j_transactions->back();
 
-            j_tx["total_sent"]    = std::to_string(total_sent);
+            j_tx["total_sent"]    = total_sent;
             j_tx["spent_outputs"] = spend_keys;
         }
         else
@@ -926,33 +944,42 @@ if (!inputs_identfied.empty())
             // this is spend only tx, so we need to create new
             // j_tx.
 
+
+            // Get tx's asset source and dest. Each tx has a single source,
+            // and a single dest. The most basic is XHV to XHV.
+            std::string strSource;
+            std::string strDest;
+            bool r = cryptonote::get_tx_asset_types(tx, tx_hash, strSource, strDest, false);
+
             json j_tx;
 
-            j_tx["id"]             = 0; // dont have any database
-                                        // id for tx in mempool
-                                        // this id is used for
-                                        // sorting txs in the
-                                        // frontend.
+            j_tx["id"]              = 0; // dont have any database
+                                         // id for tx in mempool
+                                         // this id is used for
+                                         // sorting txs in the
+                                         // frontend.
 
-            j_tx["hash"]           = tx_hash_str;
-            j_tx["tx_pub_key"]     = tx_pub_key_str;
-            j_tx["timestamp"]      = recieve_time*1e3; // when it got into mempool
-            j_tx["total_received"] = "0";          // we did not recive any outputs/xmr
-            j_tx["total_sent"]     = std::to_string(total_sent); // to be set later when looking for key images
-            j_tx["unlock_time"]    = 0;          // for mempool we set it to zero
-                                                 // since we dont have block_height to work with
-            j_tx["height"]         = current_height; // put current blockchain height,
+            j_tx["hash"]            = tx_hash_str;
+            j_tx["tx_pub_key"]      = tx_pub_key_str;
+            j_tx["timestamp"]       = recieve_time*1e3; // when it got into mempool
+            j_tx["total_received"]  = init_totals();          // we did not recive any outputs/xmr
+            j_tx["total_sent"]      = total_sent; // to be set later when looking for key images
+            // j_tx["unlock_time"]    = 0;          // for mempool we set it to zero
+            //                                      // since we dont have block_height to work with
+            j_tx["height"]          = current_height; // put current blockchain height,
                                                 // just to indicate to frontend that this
                                                 // tx is younger than 10 blocks so that
                                                 // it shows unconfirmed message.
-            j_tx["payment_id"]     = current_bc_status
+            j_tx["payment_id"]      = current_bc_status
                     ->get_payment_id_as_string(tx);
-            j_tx["coinbase"]       = false;     // mempool tx are not coinbase, so always false
-            j_tx["is_rct"]         = is_rct;
-            j_tx["rct_type"]       = rct_type;
-            j_tx["mixin"]          = mixin_no;
-            j_tx["mempool"]        = true;
-            j_tx["spent_outputs"]  = spend_keys;
+            j_tx["coinbase"]        = false;     // mempool tx are not coinbase, so always false
+            j_tx["is_rct"]          = is_rct;
+            j_tx["rct_type"]        = rct_type;
+            j_tx["mixin"]           = mixin_no;
+            j_tx["mempool"]         = true;
+            j_tx["spent_outputs"]   = spend_keys;
+            j_tx["from_asset_type"] = strSource;
+            j_tx["to_asset_type"]   = strDest;
 
             j_transactions->push_back(j_tx);
 

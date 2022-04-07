@@ -279,6 +279,19 @@ populate_known_outputs_from_csv(
         string const& csv_file,
         std::unordered_map<public_key, uint64_t>& known_outputs,
         bool skip_first_line = true);
+
+void
+add_to_total(json& j_totals, string asset_type, uint64_t amount);
+
+json
+merge_totals(json j_totalsA, json j_totalsB);
+
+json
+init_totals();
+
 }
+
+
+
 
 #endif //XMREG01_TOOLS_H

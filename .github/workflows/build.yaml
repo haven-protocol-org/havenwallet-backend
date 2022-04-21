@@ -42,19 +42,17 @@ jobs:
         cd cppzmq
         sudo mv *.hpp /usr/local/include
 
-
-    - name: Compile Haven
-      run: |
-        git clone --recurse-submodules https://github.com/haven-protocol-org/haven-main.git 
-        cd haven-main
-        mkdir -p build/release && cd build/release
-        cmake -D CMAKE_BUILD_TYPE=Release ../..
-        cmake --build . --target cryptonote_core -- -j 2
-        cd ../..
-
     - name: Get openhaven submodules
       run: |
         git submodule update --init --recursive
+
+    - name: Compile Haven
+      run: |
+        cd src/haven-main
+        mkdir -p build/release && cd build/release
+        cmake -D CMAKE_BUILD_TYPE=Release ../..
+        cmake --build . --target cryptonote_core -- -j 2
+        cd ../../..
 
     - name: Creating Build Files 
       run: 'cmake -DMONERO_DIR=/home/runner/work/openhaven/openhaven/haven-main -DBUILD_TESTS=OFF -H. -Bbuild'

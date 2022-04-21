@@ -2,3 +2,6 @@
 	path = src/xmregcore
 	url = https://github.com/MartyHav/xmregcore.git
 	branch = feature/v16
+[submodule "src/haven"]
+	path = src/haven
+	url = https://github.com/haven-protocol-org/haven-main

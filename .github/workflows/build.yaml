@@ -48,14 +48,14 @@ jobs:
 
     - name: Compile Haven
       run: |
-        cd src/haven-main
+        cd src/haven
         mkdir -p build/release && cd build/release
         cmake -D CMAKE_BUILD_TYPE=Release ../..
         cmake --build . --target cryptonote_core -- -j 2
         cd ../../..
 
     - name: Creating Build Files 
-      run: 'cmake -DMONERO_DIR=/home/runner/work/openhaven/openhaven/haven-main -DBUILD_TESTS=OFF -H. -Bbuild'
+      run: 'cmake -DMONERO_DIR=/home/runner/work/openhaven/openhaven/haven -DBUILD_TESTS=OFF -H. -Bbuild'
       
     - name: Creating Binary Files
       run: 'cmake --build build -- -j 2'

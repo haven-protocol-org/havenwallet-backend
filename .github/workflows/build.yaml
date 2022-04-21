@@ -27,7 +27,7 @@ jobs:
         tar -xvf boost_1_77_0.tar.gz
         cd boost_1_77_0
         ./bootstrap.sh
-        ./b2 install -j2
+        sudo ./b2 install -j3
     - name: Get openhaven submodules
       run: |
         git submodule update --init --recursive
@@ -37,14 +37,14 @@ jobs:
         cd src/haven
         mkdir -p build/release && cd build/release
         cmake -D CMAKE_BUILD_TYPE=Release ../..
-        cmake --build . --target cryptonote_core -- -j 2
+        cmake --build . --target cryptonote_core -- -j3
         cd ../../..
 
     - name: Creating Build Files 
       run: 'cmake -DMONERO_DIR=/home/runner/work/openhaven/openhaven/src/haven -DBUILD_TESTS=OFF -H. -Bbuild'
       
     - name: Creating Binary Files
-      run: 'cmake --build build -- -j 2'
+      run: 'cmake --build build -- -j3'
 
     
     

@@ -17,9 +17,6 @@ jobs:
         submodules: recursive
     - name: remove bundled boost
       run: sudo rm -rf /usr/local/share/boost
-    - name: set apt conf
-      run: |
-        echo $PWD
     - name: Install Haven dependencies
       run: |
         sudo apt update
@@ -44,7 +41,7 @@ jobs:
         cd ../../..
 
     - name: Creating Build Files 
-      run: 'cmake -DMONERO_DIR=/home/runner/work/openhaven/src/haven -DBUILD_TESTS=OFF -H. -Bbuild'
+      run: 'cmake -DMONERO_DIR=/home/runner/work/openhaven/openhaven/src/haven -DBUILD_TESTS=OFF -H. -Bbuild'
       
     - name: Creating Binary Files
       run: 'cmake --build build -- -j 2'

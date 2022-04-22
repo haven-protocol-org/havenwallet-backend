@@ -38,7 +38,9 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
  && apt-get --no-install-recommends --yes install libsodium23 unbound libunwind8 libmysql++3v5
 
-COPY --from=builder /openhaven/build /openhaven
+COPY --from=builder /openhaven/build/openmonero /usr/bin
+COPY --from=builder /openhaven/sql/ /openhaven/sql/
+
 COPY --from=builder /usr/local/lib/libboost* /usr/local/lib/
 
 WORKDIR /openhaven

@@ -39,6 +39,44 @@ jobs:
       
     - name: Creating Binary Files
       run: 'cmake --build build -- -j3'
+    - name: package open haven
+      run: |
+        cd build
+        tar -czvf open-haven-glibc229.tar.gz openmonero sql
+    - uses: actions/upload-artifact@v2
+      with:
+        name: open-haven-glibc229.tar.gz
+        path: haven-explorer/open-haven-glibc229.tar.gz
+        retention-days: 10
 
-    
-    
+
+
+  upload-open-haven:
+    needs: build-open-haven
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: open-haven-glibc229.tar.gz
+    - name: Upload Haven CLI
+      uses: goshiz/do-space-sync-action@master
+      with:
+        args: --acl public-read
+      env:
+        SOURCE_DIR: 'open-haven-glibc229.tar.gz'
+        SPACE_NAME: ${{ secrets.SPACE_NAME }}
+        SPACE_FOLDER: binaries
+        SPACE_REGION: ${{ secrets.SPACE_REGION}}
+        SPACE_ACCESS_KEY_ID: ${{ secrets.SPACE_ACCESS_KEY_ID }}
+        SPACE_SECRET_ACCESS_KEY: ${{ secrets.SPACE_SECRET_ACCESS_KEY }}
+    - name: notification
+      env:
+        BINARY_NAME: /open-haven-glibc229.tar.gz
+        BINARY_URL: https://docs.havenprotocol.org/binaries/
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      shell: bash
+      run: |
+        export checksum=($(sha256sum open-haven-glibc229.tar.gz))
+        export payload='{"username": "Github", "content": "Open Haven (Linux 2.29) : '${BINARY_URL}${GITHUB_REF##*/}${BINARY_NAME}' (sha256 checksum : '${checksum}')"}'
+        echo $payload
+        curl -X POST -H "Content-Type: application/json" -d "$payload" $DISCORD_WEBHOOK

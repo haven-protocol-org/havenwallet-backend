@@ -46,7 +46,7 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: open-haven-glibc229.tar.gz
-        path: haven-explorer/build/open-haven-glibc229.tar.gz
+        path: build/open-haven-glibc229.tar.gz
         retention-days: 10
 
 

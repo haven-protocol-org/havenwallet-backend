@@ -79,7 +79,7 @@ jobs:
         echo $payload
         curl -X POST -H "Content-Type: application/json" -d "$payload" $DISCORD_WEBHOOK
 
-publish-open-haven
+  publish-open-haven:
     needs: build-open-haven
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest

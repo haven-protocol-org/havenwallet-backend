@@ -1,0 +1,18 @@
+services:
+  openhaven:
+    image: havenprotocolorg/openhaven:latest
+    volumes:
+      - blockchain-data:/home/haven/.haven
+  havend:
+    image: havenprotocolorg/haven-cli:latest
+    volumes:
+      - blockchain-data:/home/haven/.haven
+  mariadb:
+    image: mariadb:latest
+    volumes:
+      - db-data:/var/lib/mysql
+    environment:
+      -MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+volumes:
+  blockchain-data:
+  db-data:

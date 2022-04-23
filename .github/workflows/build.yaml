@@ -4,63 +4,79 @@ on: [push, pull_request]
 
 jobs:
   build-open-haven:
-    env:
-      ZMQ_VERSION: v4.3.1
-      CPPZMQ_VERSION: v4.3.0
-      CFLAGS: -fPIC
-      CXXFLAGS: -fPIC
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: recursive
     - name: remove bundled boost
       run: sudo rm -rf /usr/local/share/boost
-    - name: set apt conf
-      run: |
-        echo "Acquire::Retries \"3\";" | sudo tee -a /etc/apt/apt.conf.d/80-custom
-        echo "Acquire::http::Timeout \"120\";" | sudo tee -a /etc/apt/apt.conf.d/80-custom
-        echo "Acquire::ftp::Timeout \"120\";" | sudo tee -a /etc/apt/apt.conf.d/80-custom
     - name: Install Haven dependencies
       run: |
         sudo apt update
-        sudo apt-get --no-install-recommends --yes install python3 build-essential cmake pkg-config libboost-all-dev libunwind-dev libcurl3-dev libssl-dev libunbound-dev libsodium-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev doxygen graphviz libpgm-dev libudev-dev libmysql++-dev
-        sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 10
-    - name: Install libzmq
+        sudo apt-get --no-install-recommends --yes install ca-certificates git wget libmysql++-dev libunwind-dev libcurl4-openssl-dev libzmq5 libzmq3-dev build-essential cmake pkg-config libssl-dev libunbound-dev libsodium-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev doxygen graphviz libpgm-dev libudev-dev
+    - name: Install Boost 1.77
       run: |
-        git clone https://github.com/zeromq/libzmq.git -b ${ZMQ_VERSION}
-        cd libzmq
-        ./autogen.sh
-        ./configure
-        make -j3
-        sudo make install
-        sudo ldconfig
-    - name: Install cppzmq
-      run: |
-        git clone https://github.com/zeromq/cppzmq.git -b ${CPPZMQ_VERSION}
-        cd cppzmq
-        sudo mv *.hpp /usr/local/include
-
-
-    - name: Compile Haven
-      run: |
-        git clone --recurse-submodules https://github.com/haven-protocol-org/haven-main.git 
-        cd haven-main
-        mkdir -p build/release && cd build/release
-        cmake -D CMAKE_BUILD_TYPE=Release ../..
-        cmake --build . --target cryptonote_core -- -j 2
-        cd ../..
-
+        wget https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.gz
+        tar -xvf boost_1_77_0.tar.gz
+        cd boost_1_77_0
+        ./bootstrap.sh
+        sudo ./b2 install -j3
     - name: Get openhaven submodules
       run: |
         git submodule update --init --recursive
 
+    - name: Compile Haven
+      run: |
+        cd src/haven
+        mkdir -p build/release && cd build/release
+        cmake -D CMAKE_BUILD_TYPE=Release ../..
+        cmake --build . --target cryptonote_core -- -j3
+        cd ../../..
+
     - name: Creating Build Files 
-      run: 'cmake -DMONERO_DIR=/home/runner/work/openhaven/openhaven/haven-main -DBUILD_TESTS=OFF -H. -Bbuild'
+      run: 'cmake -DMONERO_DIR=/home/runner/work/openhaven/openhaven/src/haven -DBUILD_TESTS=OFF -H. -Bbuild'
       
     - name: Creating Binary Files
-      run: 'cmake --build build -- -j 2'
+      run: 'cmake --build build -- -j3'
+    - name: package open haven
+      run: |
+        cd build
+        tar -czvf open-haven-glibc229.tar.gz openmonero sql
+    - uses: actions/upload-artifact@v2
+      with:
+        name: open-haven-glibc229.tar.gz
+        path: build/open-haven-glibc229.tar.gz
+        retention-days: 10
 
-    
-    
+
+
+  upload-open-haven:
+    needs: build-open-haven
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: open-haven-glibc229.tar.gz
+    - name: Upload Haven CLI
+      uses: goshiz/do-space-sync-action@master
+      with:
+        args: --acl public-read
+      env:
+        SOURCE_DIR: 'open-haven-glibc229.tar.gz'
+        SPACE_NAME: ${{ secrets.SPACE_NAME }}
+        SPACE_FOLDER: binaries
+        SPACE_REGION: ${{ secrets.SPACE_REGION}}
+        SPACE_ACCESS_KEY_ID: ${{ secrets.SPACE_ACCESS_KEY_ID }}
+        SPACE_SECRET_ACCESS_KEY: ${{ secrets.SPACE_SECRET_ACCESS_KEY }}
+    - name: notification
+      env:
+        BINARY_NAME: /open-haven-glibc229.tar.gz
+        BINARY_URL: https://docs.havenprotocol.org/binaries/
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      shell: bash
+      run: |
+        export checksum=($(sha256sum open-haven-glibc229.tar.gz))
+        export payload='{"username": "Github", "content": "Open Haven (Linux 2.29) : '${BINARY_URL}${GITHUB_REF##*/}${BINARY_NAME}' (sha256 checksum : '${checksum}')"}'
+        echo $payload
+        curl -X POST -H "Content-Type: application/json" -d "$payload" $DISCORD_WEBHOOK

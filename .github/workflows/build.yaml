@@ -49,8 +49,6 @@ jobs:
         path: build/open-haven-glibc229.tar.gz
         retention-days: 10
 
-
-
   upload-open-haven:
     needs: build-open-haven
     runs-on: ubuntu-20.04
@@ -80,3 +78,22 @@ jobs:
         export payload='{"username": "Github", "content": "Open Haven (Linux 2.29) : '${BINARY_URL}${GITHUB_REF##*/}${BINARY_NAME}' (sha256 checksum : '${checksum}')"}'
         echo $payload
         curl -X POST -H "Content-Type: application/json" -d "$payload" $DISCORD_WEBHOOK
+
+  publish-open-haven:
+    needs: build-open-haven
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: open-haven-glibc229.tar.gz
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: open-haven-glibc229.tar.gz
+        asset_name: open-haven-glibc229.tar.gz
+        tag: ${{ github.ref }}
+        overwrite: true
+        body: ""
+        prerelease: true

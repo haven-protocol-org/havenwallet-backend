@@ -39,10 +39,11 @@ RUN apt-get update \
 
 COPY --from=builder /openhaven/build/openmonero /usr/bin
 COPY --from=builder /openhaven/sql/ /openhaven/sql/
+COPY --from=builder /openhaven/build/config/config.json /openhaven/
 
 COPY --from=builder /usr/local/lib/libboost* /usr/local/lib/
 
 WORKDIR /openhaven
 
-CMD ["openmonero"]
+CMD ["openmonero","--config-file","/openhaven/config.json"]
 

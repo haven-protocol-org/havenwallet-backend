@@ -2012,7 +2012,7 @@ OpenMoneroRequests::get_tx(
 
     j_response["tx_height"]         = tx_height;
     j_response["no_confirmations"]  = no_confirmations;
-    j_response["status"]            = "OK";
+    j_response["status"]            = "success";
     j_response["error"]             = "";
 
     string response_body = j_response.dump();

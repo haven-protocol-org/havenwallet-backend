@@ -1749,6 +1749,13 @@ OpenMoneroRequests::get_tx(
     uint64_t fee {0};
     uint64_t mixin_no;
     uint64_t size;
+     // Get tx's asset source and dest. Each tx has a single source,
+    // and a single dest. The most basic is XHV to XHV.
+
+    std::string strSource;
+    std::string strDest;
+
+    bool r = cryptonote::get_tx_asset_types(tx, tx_hash, strSource, strDest, coinbase);
 
     // sum xmr in inputs and ouputs in the given tx
     array<uint64_t, 4> const& sum_data = xmreg::summary_of_in_out_rct(
@@ -1766,6 +1773,8 @@ OpenMoneroRequests::get_tx(
     j_response["num_of_inputs"]  = input_key_imgs.size();
     j_response["tx_version"]     = tx.version;
     j_response["rct_type"]       = tx.rct_signatures.type;
+    j_response["from_asset_type"] = strSource;
+    j_response["to_asset_type"] = strDest;
 
     if (!coinbase &&  tx.vin.size() > 0)
     {
@@ -1843,9 +1852,13 @@ OpenMoneroRequests::get_tx(
         auto const& outputs_identified 
                 = identifier.get<Output>()->get();
 
-        auto total_received = calc_total_xmr(outputs_identified);
+        json j_total_received = init_totals();//calc_total_xmr(outputs_identified);
 
-        j_response["total_received"] = std::to_string(total_received);
+        for (auto& out_info:  outputs_identified) {
+            add_to_total(j_total_received, out_info.asset_type, out_info.amount);
+        }
+
+        j_response["total_received"] = j_total_received;
         json j_total_sent = init_totals();
 
         json j_spent_outputs = json::array();
@@ -1901,11 +1914,11 @@ OpenMoneroRequests::get_tx(
                                     ->select_by_primary_id(
                                         input.output_id, out))
                             {
-                                add_to_total(j_total_sent, out.asset_type, input.amount);
+                                add_to_total(j_total_sent, strSource, input.amount);
 
                                 j_spent_outputs.push_back({
                                       {"amount"     , std::to_string(input.amount)},
-                                      {"asset_type" , out.asset_type},
+                                      {"asset_type" , strSource},
                                       {"key_image"  , input.key_image},
                                       {"tx_pub_key" , out.tx_pub_key},
                                       {"out_index"  , out.out_index},
@@ -1956,7 +1969,7 @@ OpenMoneroRequests::get_tx(
 
                     json j_spent_outputs = json::array();
 
-                    uint64_t total_spent {0};
+                    json j_total_sent = init_totals();
 
                     for (auto& in_info: inputs_identfied)
                     {
@@ -1971,19 +1984,20 @@ OpenMoneroRequests::get_tx(
 
                         if (xmr_accounts->output_exists(out_pub_key, out))
                         {
-                            total_spent += out.amount;
+                            add_to_total(j_total_sent, out.asset_type, in_info.amount);
 
                             j_spent_outputs.push_back({
                                       {"amount"     , std::to_string(in_info.amount)},
                                       {"key_image"  , pod_to_hex(in_info.key_img)},
                                       {"tx_pub_key" , out.tx_pub_key},
                                       {"out_index"  , out.out_index},
+                                      {"asset_type"  , out.asset_type},
                                       {"mixin"      , out.mixin}});
                         }
 
                     } //  for (auto& in_info: oi_identification
 
-                    j_response["total_sent"]    = std::to_string(total_spent);
+                    j_response["total_sent"]    = j_total_sent;
 
                     j_response["spent_outputs"] = j_spent_outputs;
 

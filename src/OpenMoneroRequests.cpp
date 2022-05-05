@@ -2041,7 +2041,9 @@ OpenMoneroRequests::get_version(
         {"testnet"             , current_bc_status->get_bc_setup().net_type
                     == network_type::TESTNET},
         {"network_type"        , current_bc_status->get_bc_setup().net_type},
-        {"blockchain_height"   , get_current_blockchain_height()}
+        {"blockchain_height"   , get_current_blockchain_height()},
+        {"fork_version"        , current_bc_status->get_hard_fork_version()},
+        {"per_byte_fee"        , current_bc_status->get_dynamic_base_fee_estimate()}
     };
 
     string response_body = j_response.dump();

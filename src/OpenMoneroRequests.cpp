@@ -1795,8 +1795,8 @@ OpenMoneroRequests::get_tx(
     j_response["size"] = size;
 
     // to be field later on using data from OutputInputIdentification
-    j_response["total_sent"] = "0";
-    j_response["total_received"] = "0";
+    j_response["total_sent"] = init_totals();
+    j_response["total_received"] = init_totals();
 
     int64_t tx_height {-1};
 
@@ -1928,9 +1928,7 @@ OpenMoneroRequests::get_tx(
 
                         } // for (XmrInput input: inputs)
 
-                        j_response["total_sent"]    = j_total_sent;
-
-                        j_response["spent_outputs"] = j_spent_outputs;
+                  
 
                     } // if (xmr_accounts->select_inputs_
 
@@ -1997,18 +1995,20 @@ OpenMoneroRequests::get_tx(
 
                     } //  for (auto& in_info: oi_identification
 
-                    j_response["total_sent"]    = j_total_sent;
-
-                    j_response["spent_outputs"] = j_spent_outputs;
-
                 } //if (current_bc_status->get_known_outputs_keys(
                   //    xmr_address, known_outputs_keys))
 
             } //  else
 
+            j_response["total_sent"]        = j_total_sent;
+            j_response["spent_outputs"]     = j_spent_outputs;
+
         } //  if (xmr_accounts->select(xmr_address, acc))
 
+       
+
     } //  if (current_bc_status->get_xmr_add
+
 
     j_response["tx_height"]         = tx_height;
     j_response["no_confirmations"]  = no_confirmations;

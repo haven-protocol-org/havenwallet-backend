@@ -1727,7 +1727,7 @@ OpenMoneroRequests::get_tx(
 
     // return tx hash. can be used to check if we acctually
     // delivered the tx that was requested
-    j_response["tx_hash"]  = pod_to_hex(tx_hash);
+    j_response["hash"]  = pod_to_hex(tx_hash);
 
     j_response["pub_key"]  = pod_to_hex(
                 xmreg::get_tx_pub_key_from_received_outs(tx));

@@ -557,6 +557,8 @@ for (auto const& tx_tuple: txs_data)
                                               //spending,
                                               //total_recieved is 0
                 tx_data.total_sent       = total_sent;
+                tx_data.str_source       = strSource;
+                tx_data.str_dest         = strDest;
                 tx_data.height           = blk_height;
                 tx_data.coinbase         = is_coinbase;
                 tx_data.is_rct           = is_rct;

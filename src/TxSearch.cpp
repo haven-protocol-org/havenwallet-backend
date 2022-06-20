@@ -789,12 +789,6 @@ const crypto::hash tx_hash = get_transaction_hash(tx);
 bool is_rct                 = (tx.version >= 2);
 uint8_t rct_type            = (is_rct ? tx.rct_signatures.type : 0);
 
-// Get tx's asset source and dest. Each tx has a single source,
-// and a single dest. The most basic is XHV to XHV.
-std::string strSource;
-std::string strDest;
-bool r = cryptonote::get_tx_asset_types(tx, tx_hash, strSource, strDest, false);
-
 // Class that is resposnible for idenficitaction of our outputs
 // and inputs in a given tx.
 
@@ -822,6 +816,13 @@ auto const& outputs_identified
 // save them into json to be returned.
 if (!outputs_identified.empty())
 {
+
+
+    // Get tx's asset source and dest. Each tx has a single source,
+    // and a single dest. The most basic is XHV to XHV.
+    std::string strSource;
+    std::string strDest;
+    bool r = cryptonote::get_tx_asset_types(tx, tx_hash, strSource, strDest, false);
 
     json total_received = init_totals();
 
